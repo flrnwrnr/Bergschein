@@ -8,6 +8,7 @@
 import Combine
 import CoreLocation
 import MapKit
+import StoreKit
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -27,6 +28,7 @@ struct ContentView: View {
     private enum SettingsRoute: Hashable, Identifiable {
         case changeLog
         case credits
+        case tips
 
         var id: Self { self }
     }
@@ -56,6 +58,7 @@ struct ContentView: View {
     private let overlayDismissAnimation = Animation.easeInOut(duration: 0.22)
 
     @StateObject private var locationController = LocationController()
+    @StateObject private var tipJarStore = TipJarStore()
     @AppStorage("unlockedBadgeIdentifiers") private var unlockedBadgeIdentifiers = ""
     @AppStorage("completedChallengeIdentifiers") private var completedChallengeIdentifiers = ""
     @AppStorage("testEventStartDay") private var testEventStartDay = ""
@@ -568,6 +571,7 @@ struct ContentView: View {
 //                        .tint(.primary)
 
                         Button {
+                            settingsRoute = .tips
                         } label: {
                             Label("Trinkgeld", systemImage: "heart")
                         }
@@ -712,6 +716,8 @@ struct ContentView: View {
                     changelogView
                 case .credits:
                     creditsView
+                case .tips:
+                    tipJarView
                 }
             }
         }
@@ -723,20 +729,213 @@ struct ContentView: View {
                 .ignoresSafeArea()
 
             List {
-                Section("2026.0") {
-                    LabeledContent("Release-Datum", value: "20.03.2026")
+                Section {
+                    VStack(alignment: .leading, spacing: 18) {
+                        HStack(alignment: .top, spacing: 12) {
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(.accent)
+                                .frame(width: 5, height: 40)
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Neu")
-                            .font(.headline)
-                        Text("Initialer Release!")
+                            Text("2026.0.1")
+                                .font(.title.weight(.bold))
+
+                            Spacer()
+
+                            HStack(spacing: 4) {
+                                Text("24.03.2026")
+                                Image(systemName: "calendar")
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Neu")
+                                .font(.headline)
+                                .foregroundStyle(.green)
+
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(.green)
+                                .frame(width: 20, height: 3)
+                        }
+
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "circle.fill")
+                                .resizable()
+                                .frame(width: 5, height: 5)
+                                .foregroundStyle(.primary)
+                                .padding(.top, 6)
+
+                            Text("Trinkgeld-Funktion hinzugefügt.")
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Spacer()
+                        }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 12)
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 18) {
+                        HStack(alignment: .top, spacing: 12) {
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(.accent)
+                                .frame(width: 5, height: 40)
+
+                            Text("2026.0")
+                                .font(.title.weight(.bold))
+
+                            Spacer()
+
+                            HStack(spacing: 4) {
+                                Text("20.03.2026")
+                                Image(systemName: "calendar")
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Neu")
+                                .font(.headline)
+                                .foregroundStyle(.green)
+
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(.green)
+                                .frame(width: 20, height: 3)
+                        }
+
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "circle.fill")
+                                .resizable()
+                                .frame(width: 5, height: 5)
+                                .foregroundStyle(.primary)
+                                .padding(.top, 6)
+
+                            Text("Erstes Release!")
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Spacer()
+                        }
+                    }
+                    .padding(.vertical, 12)
                 }
             }
             .scrollContentBackground(.hidden)
         }
         .navigationTitle("Change Log")
+    }
+
+    private var tipJarView: some View {
+        ZStack {
+            appBackgroundGradient
+                .ignoresSafeArea()
+
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Wenn dir die App gefällt, kannst du hier freiwillig Trinkgeld dalassen.")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("Die Unterstützung hilft bei Weiterentwicklung, Betrieb und neuen Ideen rund um die App für die kommenden Jahre.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                if tipJarStore.isLoading {
+                    Section {
+                        HStack(spacing: 12) {
+                            ProgressView()
+                            Text("Trinkgeldoptionen werden geladen …")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 6)
+                    }
+                } else {
+                    Section("Optionen") {
+                        ForEach(tipJarStore.products, id: \.id) { product in
+                            Button {
+                                Task {
+                                    await tipJarStore.purchase(product)
+                                }
+                            } label: {
+                                HStack(spacing: 14) {
+                                    Text(tipJarStore.emoji(for: product.id))
+                                        .font(.system(size: 34))
+                                        .frame(width: 44)
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(tipJarStore.title(for: product))
+                                            .font(.headline.weight(.bold))
+                                            .foregroundStyle(.primary)
+
+                                        Text(tipJarStore.subtitle(for: product))
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+
+                                    Spacer()
+
+                                    if tipJarStore.purchaseInProgressProductID == product.id {
+                                        ProgressView()
+                                    } else {
+                                        VStack(alignment: .trailing, spacing: 4) {
+                                            Text(product.displayPrice)
+                                                .font(.headline.weight(.black))
+                                                .foregroundStyle(Color.accentColor)
+
+                                            Image(systemName: "chevron.right")
+                                                .font(.footnote.weight(.bold))
+                                                .foregroundStyle(.tertiary)
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 2)
+                            }
+                            .disabled(tipJarStore.purchaseInProgressProductID != nil)
+                        }
+                    }
+                }
+
+                if let errorMessage = tipJarStore.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+
+            if let successMessage = tipJarStore.successMessage {
+                TipThankYouOverlayView(
+                    message: successMessage,
+                    darkForest: darkForest,
+                    onDismiss: {
+                        withAnimation(overlayDismissAnimation) {
+                            tipJarStore.successMessage = nil
+                        }
+                    }
+                )
+            }
+        }
+        .navigationTitle("Trinkgeld")
+        .task {
+            await tipJarStore.loadProducts()
+        }
+        .onChange(of: tipJarStore.successMessage) { _, newValue in
+            if newValue != nil {
+                triggerSuccessHaptic()
+            }
+        }
     }
 
     private var creditsView: some View {
@@ -1099,7 +1298,14 @@ struct ContentView: View {
                 return .tb
             }
         case (false, _, .afternoon):
-            return .ffwd
+            switch morningOutsideBannerVariant {
+            case .ffwd:
+                return .ffwd
+            case .ching:
+                return .ching
+            case .tb:
+                return .tb
+            }
         case (false, _, .overnight):
             return .zirkel
         case (true, false, .morning):
@@ -1146,7 +1352,7 @@ struct ContentView: View {
     }
 
     private func refreshMorningOutsideBannerVariant() {
-        guard currentAdSlot == .morning, !locationController.isInAllowedRegion else {
+        guard (currentAdSlot == .morning || currentAdSlot == .afternoon), !locationController.isInAllowedRegion else {
             morningOutsideBannerVariant = .ffwd
             return
         }
@@ -2254,6 +2460,119 @@ struct BadgeShareSheetItem: Identifiable {
     let image: UIImage
 }
 
+@MainActor
+final class TipJarStore: ObservableObject {
+    @Published var products: [Product] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var successMessage: String?
+    @Published var purchaseInProgressProductID: String?
+
+    private let productIDs = [
+        "kleines_trinkgeld",
+        "mittleres_trinkgeld",
+        "grosses_trinkgeld"
+    ]
+
+    func loadProducts() async {
+        guard products.isEmpty else { return }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let storeProducts = try await Product.products(for: productIDs)
+            let sortedProducts = productIDs.compactMap { productID in
+                storeProducts.first(where: { $0.id == productID })
+            }
+            products = sortedProducts
+        } catch {
+            errorMessage = "Die Trinkgeldoptionen konnten gerade nicht geladen werden."
+        }
+
+        isLoading = false
+    }
+
+    func purchase(_ product: Product) async {
+        purchaseInProgressProductID = product.id
+        errorMessage = nil
+        successMessage = nil
+
+        defer {
+            purchaseInProgressProductID = nil
+        }
+
+        do {
+            let result = try await product.purchase()
+
+            switch result {
+            case .success(let verification):
+                let transaction = try checkVerified(verification)
+                await transaction.finish()
+                successMessage = "Vielen Dank für dein Trinkgeld!"
+            case .userCancelled, .pending:
+                break
+            @unknown default:
+                break
+            }
+        } catch {
+            errorMessage = "Der Kauf konnte nicht abgeschlossen werden."
+        }
+    }
+
+    func emoji(for productID: String) -> String {
+        switch productID {
+        case "kleines_trinkgeld":
+            return "🥛"
+        case "mittleres_trinkgeld":
+            return "🍺"
+        case "grosses_trinkgeld":
+            return "🍻"
+        default:
+            return "❤️"
+        }
+    }
+
+    func title(for product: Product) -> String {
+        switch product.id {
+        case "kleines_trinkgeld":
+            return "Kleines Trinkgeld"
+        case "mittleres_trinkgeld":
+            return "Großes Trinkgeld"
+        case "grosses_trinkgeld":
+            return "Noch größeres Trinkgeld"
+        default:
+            return product.displayName
+        }
+    }
+
+    func subtitle(for product: Product) -> String {
+        switch product.id {
+        case "kleines_trinkgeld":
+            return "Ein kleines Danke und Support."
+        case "mittleres_trinkgeld":
+            return "Eine Halbe auf deinen Nacken."
+        case "grosses_trinkgeld":
+            return "Ein großes Danke und eine Runde für die Weiterentwicklung."
+        default:
+            return product.description
+        }
+    }
+
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .unverified:
+            throw StoreError.failedVerification
+        case .verified(let safe):
+            return safe
+        }
+    }
+
+    private enum StoreError: Error {
+        case failedVerification
+    }
+}
+
 struct MissedDayAlertPresentation {
     let missedBadge: BadgeDefinition
 }
@@ -2723,6 +3042,7 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
     enum TestPolygon {
         case original
         case alternate
+        case compact
     }
 
     static let originalRegionPolygon: [CLLocationCoordinate2D] = [
@@ -2760,6 +3080,13 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
         CLLocationCoordinate2D(latitude: 49.60782, longitude: 11.00217),
     ]
 
+    static let compactRegionPolygon: [CLLocationCoordinate2D] = [
+        CLLocationCoordinate2D(latitude: 49.59600, longitude: 11.00298),
+        CLLocationCoordinate2D(latitude: 49.59546, longitude: 11.00313),
+        CLLocationCoordinate2D(latitude: 49.59559, longitude: 11.00364),
+        CLLocationCoordinate2D(latitude: 49.59641, longitude: 11.00328),
+    ]
+
     static func mapRegion(for polygonCoordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
         let polygon = MKPolygon(coordinates: polygonCoordinates, count: polygonCoordinates.count)
         let boundingRect = polygon.boundingMapRect
@@ -2794,6 +3121,8 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
             return Self.originalRegionPolygon
         case .alternate:
             return Self.alternateRegionPolygon
+        case .compact:
+            return Self.compactRegionPolygon
         }
     }
 
@@ -2810,9 +3139,11 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
     var activePolygonName: String {
         switch activeTestPolygon {
         case .original:
-            return "Alternative"
-        case .alternate:
             return "Original"
+        case .alternate:
+            return "Alternative"
+        case .compact:
+            return "Kompakt"
         }
     }
 
@@ -2897,7 +3228,14 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
     }
 
     func toggleTestPolygon() {
-        activeTestPolygon = activeTestPolygon == .original ? .alternate : .original
+        switch activeTestPolygon {
+        case .original:
+            activeTestPolygon = .alternate
+        case .alternate:
+            activeTestPolygon = .compact
+        case .compact:
+            activeTestPolygon = .original
+        }
         isUsingTestRegion = true
         if let lastKnownCoordinate {
             updateRegionState(for: lastKnownCoordinate)

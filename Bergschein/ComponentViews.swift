@@ -843,6 +843,65 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) { }
 }
 
+struct TipThankYouOverlayView: View {
+    let message: String
+    let darkForest: Color
+    let onDismiss: () -> Void
+    @State private var animateIn = false
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+                .opacity(animateIn ? 1 : 0)
+                .transition(.opacity)
+
+            Color.black.opacity(animateIn ? 0.22 : 0)
+                .ignoresSafeArea()
+                .transition(.opacity)
+
+            VStack(spacing: 18) {
+                Text("Danke!")
+                    .font(.custom(BrandFont.primaryName, size: 34, relativeTo: .title2))
+                    .fontWeight(.regular)
+                    .tracking(0.3)
+                    .foregroundStyle(darkForest)
+
+                Text("🍻")
+                    .font(.system(size: 56))
+
+                Text(message)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button("Schließen", action: onDismiss)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+            }
+            .padding(28)
+            .frame(maxWidth: 340)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color(uiColor: .systemBackground))
+            )
+            .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
+            .padding(.horizontal, 24)
+            .scaleEffect(animateIn ? 1 : 0.94)
+            .offset(y: animateIn ? 0 : 24)
+            .opacity(animateIn ? 1 : 0)
+            .transition(overlayCardTransition)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.82)) {
+                animateIn = true
+            }
+        }
+    }
+}
+
 struct ChallengeOverlayView: View {
     let presentation: ChallengeOverlayPresentation
     let darkForest: Color
