@@ -234,7 +234,7 @@ struct ContentView: View {
     }
 
     private var locationTab: some View {
-        CheckInTabScreen(
+        CheckInView(
             appBackgroundGradient: appBackgroundGradient,
             statusGradient: statusGradient,
             checkInHeadlineLabel: checkInHeadlineLabel,
@@ -300,7 +300,7 @@ struct ContentView: View {
     }
 
     private var badgesTab: some View {
-        BergscheinTabScreen(
+        BergscheinView(
             appBackgroundGradient: appBackgroundGradient,
             badgeDefinitions: badgeDefinitions,
             unlockedBadges: unlockedBadges,
@@ -536,11 +536,11 @@ struct ContentView: View {
     }
 
     private var changelogView: some View {
-        ChangeLogScreen(backgroundGradient: appBackgroundGradient)
+        ChangeLogView(backgroundGradient: appBackgroundGradient)
     }
 
     private var tipJarView: some View {
-        TipJarScreen(
+        TipJarView(
             backgroundGradient: appBackgroundGradient,
             darkForest: darkForest,
             tipJarStore: tipJarStore,
@@ -550,14 +550,14 @@ struct ContentView: View {
     }
 
     private var creditsView: some View {
-        CreditsScreen(
+        CreditsView(
             backgroundGradient: appBackgroundGradient,
             onLogoTap: handleFFWDLogoTap
         )
     }
 
     private var challengeTab: some View {
-        ChallengeTabScreen(
+        ChallengeView(
             appBackgroundGradient: appBackgroundGradient,
             darkForest: darkForest,
             hasChallengeSeasonEnded: hasChallengeSeasonEnded,

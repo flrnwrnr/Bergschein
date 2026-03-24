@@ -127,6 +127,7 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
         case original
         case alternate
         case compact
+        case southern
     }
 
     static let originalRegionPolygon: [CLLocationCoordinate2D] = [
@@ -171,6 +172,13 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
         CLLocationCoordinate2D(latitude: 49.59641, longitude: 11.00328)
     ]
 
+    static let southernRegionPolygon: [CLLocationCoordinate2D] = [
+        CLLocationCoordinate2D(latitude: 49.58432, longitude: 11.00301),
+        CLLocationCoordinate2D(latitude: 49.58441, longitude: 11.00569),
+        CLLocationCoordinate2D(latitude: 49.58309, longitude: 11.00591),
+        CLLocationCoordinate2D(latitude: 49.58314, longitude: 11.00316)
+    ]
+
     static func mapRegion(for polygonCoordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
         let polygon = MKPolygon(coordinates: polygonCoordinates, count: polygonCoordinates.count)
         let boundingRect = polygon.boundingMapRect
@@ -207,6 +215,8 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
             return Self.alternateRegionPolygon
         case .compact:
             return Self.compactRegionPolygon
+        case .southern:
+            return Self.southernRegionPolygon
         }
     }
 
@@ -228,6 +238,8 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
             return "Alternative"
         case .compact:
             return "Kompakt"
+        case .southern:
+            return "Sued"
         }
     }
 
@@ -318,6 +330,8 @@ final class LocationController: NSObject, ObservableObject, CLLocationManagerDel
         case .alternate:
             activeTestPolygon = .compact
         case .compact:
+            activeTestPolygon = .southern
+        case .southern:
             activeTestPolygon = .original
         }
         isUsingTestRegion = true

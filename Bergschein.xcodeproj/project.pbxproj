@@ -6,7 +6,72 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A65A44A72F72EA6F000B2A35 /* appstore.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44902F72EA6F000B2A35 /* appstore.png */; };
+		A65A44A92F72EA6F000B2A35 /* badge1.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44922F72EA6F000B2A35 /* badge1.png */; };
+		A65A44AA2F72EA6F000B2A35 /* badge2.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44932F72EA6F000B2A35 /* badge2.png */; };
+		A65A44AB2F72EA6F000B2A35 /* badge3.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44942F72EA6F000B2A35 /* badge3.png */; };
+		A65A44AC2F72EA6F000B2A35 /* badge4.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44952F72EA6F000B2A35 /* badge4.png */; };
+		A65A44AD2F72EA6F000B2A35 /* badge5.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44962F72EA6F000B2A35 /* badge5.png */; };
+		A65A44AE2F72EA6F000B2A35 /* badge6.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44972F72EA6F000B2A35 /* badge6.png */; };
+		A65A44AF2F72EA6F000B2A35 /* badge7.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44982F72EA6F000B2A35 /* badge7.png */; };
+		A65A44B02F72EA6F000B2A35 /* badge8.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A44992F72EA6F000B2A35 /* badge8.png */; };
+		A65A44B12F72EA6F000B2A35 /* badge9.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A449A2F72EA6F000B2A35 /* badge9.png */; };
+		A65A44B22F72EA6F000B2A35 /* badge10.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A449B2F72EA6F000B2A35 /* badge10.png */; };
+		A65A44B32F72EA6F000B2A35 /* badge11.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A449C2F72EA6F000B2A35 /* badge11.png */; };
+		A65A44B42F72EA6F000B2A35 /* badge12.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A449D2F72EA6F000B2A35 /* badge12.png */; };
+		A65A44B52F72EA6F000B2A35 /* badge12b.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A449E2F72EA6F000B2A35 /* badge12b.png */; };
+		A65A44B62F72EA6F000B2A35 /* font.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A65A44A22F72EA6F000B2A35 /* font.ttf */; };
+		A65A44BB2F72EA6F000B2A35 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44A12F72EA6F000B2A35 /* ContentView.swift */; };
+		A65A44C02F72EEF7000B2A35 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44BD2F72EEF7000B2A35 /* AppModels.swift */; };
+		A65A44C12F72EEF7000B2A35 /* AppServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44BE2F72EEF7000B2A35 /* AppServices.swift */; };
+		A65A44CB2F72F1C7000B2A35 /* AppDateHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44C52F72F1C7000B2A35 /* AppDateHelpers.swift */; };
+		A65A44CC2F72F1C7000B2A35 /* BadgeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44C62F72F1C7000B2A35 /* BadgeViews.swift */; };
+		A65A44CD2F72F1C7000B2A35 /* ChallengeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44C72F72F1C7000B2A35 /* ChallengeViews.swift */; };
+		A65A44CE2F72F1C7000B2A35 /* OverlayShareViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44C82F72F1C7000B2A35 /* OverlayShareViews.swift */; };
+		A65A44CF2F72F1C7000B2A35 /* StatusViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44C92F72F1C7000B2A35 /* StatusViews.swift */; };
+		A65A44D02F72F1C7000B2A35 /* ViewStyleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44CA2F72F1C7000B2A35 /* ViewStyleSupport.swift */; };
+		A65A44D22F72F1E3000B2A35 /* ComponentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44D12F72F1E3000B2A35 /* ComponentViews.swift */; };
+		A65A44DD2F72F5F6000B2A35 /* CheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44DC2F72F5F6000B2A35 /* CheckInView.swift */; };
+		A65A44DF2F72F5F6000B2A35 /* BergscheinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44DE2F72F5F6000B2A35 /* BergscheinView.swift */; };
+		A65A44E12F72F5F6000B2A35 /* ChallengeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44E02F72F5F6000B2A35 /* ChallengeView.swift */; };
+		A65A44E32F72F5F6000B2A35 /* ChangeLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44E22F72F5F6000B2A35 /* ChangeLogView.swift */; };
+		A65A44E52F72F5F6000B2A35 /* TipJarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44E42F72F5F6000B2A35 /* TipJarView.swift */; };
+		A65A44E72F72F5F6000B2A35 /* CreditsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44E62F72F5F6000B2A35 /* CreditsView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		A65A44902F72EA6F000B2A35 /* appstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = appstore.png; sourceTree = "<group>"; };
+		A65A44922F72EA6F000B2A35 /* badge1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge1.png; sourceTree = "<group>"; };
+		A65A44932F72EA6F000B2A35 /* badge2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2.png; sourceTree = "<group>"; };
+		A65A44942F72EA6F000B2A35 /* badge3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge3.png; sourceTree = "<group>"; };
+		A65A44952F72EA6F000B2A35 /* badge4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge4.png; sourceTree = "<group>"; };
+		A65A44962F72EA6F000B2A35 /* badge5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge5.png; sourceTree = "<group>"; };
+		A65A44972F72EA6F000B2A35 /* badge6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge6.png; sourceTree = "<group>"; };
+		A65A44982F72EA6F000B2A35 /* badge7.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge7.png; sourceTree = "<group>"; };
+		A65A44992F72EA6F000B2A35 /* badge8.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge8.png; sourceTree = "<group>"; };
+		A65A449A2F72EA6F000B2A35 /* badge9.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge9.png; sourceTree = "<group>"; };
+		A65A449B2F72EA6F000B2A35 /* badge10.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge10.png; sourceTree = "<group>"; };
+		A65A449C2F72EA6F000B2A35 /* badge11.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge11.png; sourceTree = "<group>"; };
+		A65A449D2F72EA6F000B2A35 /* badge12.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge12.png; sourceTree = "<group>"; };
+		A65A449E2F72EA6F000B2A35 /* badge12b.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge12b.png; sourceTree = "<group>"; };
+		A65A44A12F72EA6F000B2A35 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A65A44A22F72EA6F000B2A35 /* font.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = font.ttf; sourceTree = "<group>"; };
+		A65A44BD2F72EEF7000B2A35 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
+		A65A44BE2F72EEF7000B2A35 /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServices.swift; sourceTree = "<group>"; };
+		A65A44C52F72F1C7000B2A35 /* AppDateHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDateHelpers.swift; sourceTree = "<group>"; };
+		A65A44C62F72F1C7000B2A35 /* BadgeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeViews.swift; sourceTree = "<group>"; };
+		A65A44C72F72F1C7000B2A35 /* ChallengeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeViews.swift; sourceTree = "<group>"; };
+		A65A44C82F72F1C7000B2A35 /* OverlayShareViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayShareViews.swift; sourceTree = "<group>"; };
+		A65A44C92F72F1C7000B2A35 /* StatusViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusViews.swift; sourceTree = "<group>"; };
+		A65A44CA2F72F1C7000B2A35 /* ViewStyleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewStyleSupport.swift; sourceTree = "<group>"; };
+		A65A44D12F72F1E3000B2A35 /* ComponentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentViews.swift; sourceTree = "<group>"; };
+		A65A44DC2F72F5F6000B2A35 /* CheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInView.swift; sourceTree = "<group>"; };
+		A65A44DE2F72F5F6000B2A35 /* BergscheinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BergscheinView.swift; sourceTree = "<group>"; };
+		A65A44E02F72F5F6000B2A35 /* ChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeView.swift; sourceTree = "<group>"; };
+		A65A44E22F72F5F6000B2A35 /* ChangeLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeLogView.swift; sourceTree = "<group>"; };
+		A65A44E42F72F5F6000B2A35 /* TipJarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipJarView.swift; sourceTree = "<group>"; };
+		A65A44E62F72F5F6000B2A35 /* CreditsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsView.swift; sourceTree = "<group>"; };
 		A69F0BD22F6D5A9800D2C755 /* Bergschein.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bergschein.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -29,11 +94,114 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A65A44D32F72F222000B2A35 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44D42F72F227000B2A35 /* Images */,
+				A65A44DB2F72F2CF000B2A35 /* Fonts */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A65A44D42F72F227000B2A35 /* Images */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44922F72EA6F000B2A35 /* badge1.png */,
+				A65A44932F72EA6F000B2A35 /* badge2.png */,
+				A65A44942F72EA6F000B2A35 /* badge3.png */,
+				A65A44952F72EA6F000B2A35 /* badge4.png */,
+				A65A44962F72EA6F000B2A35 /* badge5.png */,
+				A65A44972F72EA6F000B2A35 /* badge6.png */,
+				A65A44992F72EA6F000B2A35 /* badge8.png */,
+				A65A44982F72EA6F000B2A35 /* badge7.png */,
+				A65A449A2F72EA6F000B2A35 /* badge9.png */,
+				A65A449B2F72EA6F000B2A35 /* badge10.png */,
+				A65A449C2F72EA6F000B2A35 /* badge11.png */,
+				A65A449D2F72EA6F000B2A35 /* badge12.png */,
+				A65A449E2F72EA6F000B2A35 /* badge12b.png */,
+				A65A44902F72EA6F000B2A35 /* appstore.png */,
+			);
+			path = Images;
+			sourceTree = "<group>";
+		};
+		A65A44D52F72F2CE000B2A35 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44BD2F72EEF7000B2A35 /* AppModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A65A44D62F72F2CE000B2A35 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44C52F72F1C7000B2A35 /* AppDateHelpers.swift */,
+				A65A44CA2F72F1C7000B2A35 /* ViewStyleSupport.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		A65A44D72F72F2CE000B2A35 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44BE2F72EEF7000B2A35 /* AppServices.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A65A44D82F72F2CE000B2A35 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44D92F72F2CE000B2A35 /* Screens */,
+				A65A44DA2F72F2CE000B2A35 /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A65A44D92F72F2CE000B2A35 /* Screens */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44A12F72EA6F000B2A35 /* ContentView.swift */,
+				A65A44DC2F72F5F6000B2A35 /* CheckInView.swift */,
+				A65A44DE2F72F5F6000B2A35 /* BergscheinView.swift */,
+				A65A44E02F72F5F6000B2A35 /* ChallengeView.swift */,
+				A65A44E22F72F5F6000B2A35 /* ChangeLogView.swift */,
+				A65A44E42F72F5F6000B2A35 /* TipJarView.swift */,
+				A65A44E62F72F5F6000B2A35 /* CreditsView.swift */,
+			);
+			path = Screens;
+			sourceTree = "<group>";
+		};
+		A65A44DA2F72F2CE000B2A35 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44C92F72F1C7000B2A35 /* StatusViews.swift */,
+				A65A44C62F72F1C7000B2A35 /* BadgeViews.swift */,
+				A65A44C72F72F1C7000B2A35 /* ChallengeViews.swift */,
+				A65A44C82F72F1C7000B2A35 /* OverlayShareViews.swift */,
+				A65A44D12F72F1E3000B2A35 /* ComponentViews.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		A65A44DB2F72F2CF000B2A35 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				A65A44A22F72EA6F000B2A35 /* font.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
 		A69F0BC92F6D5A9800D2C755 = {
 			isa = PBXGroup;
 			children = (
 				A69F0BD42F6D5A9800D2C755 /* Bergschein */,
 				A69F0BD32F6D5A9800D2C755 /* Products */,
+				A65A44D32F72F222000B2A35 /* Resources */,
+				A65A44D52F72F2CE000B2A35 /* Models */,
+				A65A44D62F72F2CE000B2A35 /* Helpers */,
+				A65A44D72F72F2CE000B2A35 /* Services */,
+				A65A44D82F72F2CE000B2A35 /* Views */,
 			);
 			sourceTree = "<group>";
 		};
@@ -109,6 +277,21 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A65A44A72F72EA6F000B2A35 /* appstore.png in Resources */,
+				A65A44A92F72EA6F000B2A35 /* badge1.png in Resources */,
+				A65A44AA2F72EA6F000B2A35 /* badge2.png in Resources */,
+				A65A44AB2F72EA6F000B2A35 /* badge3.png in Resources */,
+				A65A44AC2F72EA6F000B2A35 /* badge4.png in Resources */,
+				A65A44AD2F72EA6F000B2A35 /* badge5.png in Resources */,
+				A65A44AE2F72EA6F000B2A35 /* badge6.png in Resources */,
+				A65A44AF2F72EA6F000B2A35 /* badge7.png in Resources */,
+				A65A44B02F72EA6F000B2A35 /* badge8.png in Resources */,
+				A65A44B12F72EA6F000B2A35 /* badge9.png in Resources */,
+				A65A44B22F72EA6F000B2A35 /* badge10.png in Resources */,
+				A65A44B32F72EA6F000B2A35 /* badge11.png in Resources */,
+				A65A44B42F72EA6F000B2A35 /* badge12.png in Resources */,
+				A65A44B52F72EA6F000B2A35 /* badge12b.png in Resources */,
+				A65A44B62F72EA6F000B2A35 /* font.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +302,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A65A44E52F72F5F6000B2A35 /* TipJarView.swift in Sources */,
+				A65A44CB2F72F1C7000B2A35 /* AppDateHelpers.swift in Sources */,
+				A65A44CC2F72F1C7000B2A35 /* BadgeViews.swift in Sources */,
+				A65A44CD2F72F1C7000B2A35 /* ChallengeViews.swift in Sources */,
+				A65A44DF2F72F5F6000B2A35 /* BergscheinView.swift in Sources */,
+				A65A44CE2F72F1C7000B2A35 /* OverlayShareViews.swift in Sources */,
+				A65A44CF2F72F1C7000B2A35 /* StatusViews.swift in Sources */,
+				A65A44E32F72F5F6000B2A35 /* ChangeLogView.swift in Sources */,
+				A65A44D02F72F1C7000B2A35 /* ViewStyleSupport.swift in Sources */,
+				A65A44BB2F72EA6F000B2A35 /* ContentView.swift in Sources */,
+				A65A44DD2F72F5F6000B2A35 /* CheckInView.swift in Sources */,
+				A65A44E72F72F5F6000B2A35 /* CreditsView.swift in Sources */,
+				A65A44E12F72F5F6000B2A35 /* ChallengeView.swift in Sources */,
+				A65A44C02F72EEF7000B2A35 /* AppModels.swift in Sources */,
+				A65A44D22F72F1E3000B2A35 /* ComponentViews.swift in Sources */,
+				A65A44C12F72EEF7000B2A35 /* AppServices.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
