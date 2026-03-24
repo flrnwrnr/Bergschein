@@ -6,6 +6,8 @@
 import SwiftUI
 
 struct ChallengeView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let appBackgroundGradient: LinearGradient
     let darkForest: Color
     let hasChallengeSeasonEnded: Bool
@@ -105,14 +107,18 @@ struct ChallengeView: View {
             .navigationTitle("Challenge")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Text("\\(completedChallengesCount)/\\(totalChallengesCount)")
+                    Text("\(completedChallengesCount)/\(totalChallengesCount)")
                         .font(.subheadline.weight(.black))
                         .foregroundStyle(darkForest)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(Color.white.opacity(0.82))
+                                .fill(
+                                    colorScheme == .dark
+                                        ? Color.white.opacity(0.12)
+                                        : Color.white.opacity(0.82)
+                                )
                         )
                         .accessibilityLabel("Absolvierte Challenges")
                 }
