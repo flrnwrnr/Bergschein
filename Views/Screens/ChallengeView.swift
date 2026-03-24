@@ -1,0 +1,128 @@
+//
+//  ChallengeView.swift
+//  Bergschein
+//
+
+import SwiftUI
+
+struct ChallengeView: View {
+    let appBackgroundGradient: LinearGradient
+    let darkForest: Color
+    let hasChallengeSeasonEnded: Bool
+    let activeChallenge: DailyChallenge?
+    let completedChallengesCount: Int
+    let totalChallengesCount: Int
+    let shouldShowChallengeButton: Bool
+    let activeChallengeButtonTitle: String
+    let canCheckInForActiveChallenge: Bool
+    let challengeStatusText: String?
+    let isChallengeCompleted: (DailyChallenge) -> Bool
+    let isWithinChallengeRadius: (DailyChallenge) -> Bool
+    let challengeDistanceText: (DailyChallenge) -> String?
+    let challengeDirectionAngle: (DailyChallenge) -> Double?
+    let onLocationTap: (DailyChallenge) -> Void
+    let onClaimChallenge: () -> Void
+    @Binding var challengeMapsAlertIsPresented: Bool
+    let onConfirmOpenMaps: () -> Void
+    let onDismissOpenMaps: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                appBackgroundGradient
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 18) {
+                        if !hasChallengeSeasonEnded {
+                            Text("Hier findest du an jedem Bergtag eine Challenge rund um das Thema Kirchweih und Erlangen. Du kannst nur an genau diesem Tag mitmachen und an ausgewählten Tagen eine \\(Text(\"Belohnung\").fontWeight(.black).foregroundStyle(.primary)) erhalten.")
+                                .font(.footnote.weight(.medium))
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(.secondary.opacity(0.9))
+                                .frame(maxWidth: .infinity)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        if let activeChallenge {
+                            ChallengeCardView(
+                                challenge: activeChallenge,
+                                isCompleted: isChallengeCompleted(activeChallenge),
+                                showsButton: shouldShowChallengeButton,
+                                buttonTitle: activeChallengeButtonTitle,
+                                canCheckIn: canCheckInForActiveChallenge,
+                                isWithinZone: isWithinChallengeRadius(activeChallenge),
+                                darkForest: darkForest,
+                                distanceText: challengeDistanceText(activeChallenge),
+                                directionAngle: challengeDirectionAngle(activeChallenge),
+                                statusText: challengeStatusText ?? "",
+                                onLocationTap: activeChallenge.centerCoordinate == nil ? nil : {
+                                    onLocationTap(activeChallenge)
+                                },
+                                action: onClaimChallenge
+                            )
+                        } else if hasChallengeSeasonEnded {
+                            VStack(spacing: 18) {
+                                Text("👋")
+                                    .font(.system(size: 68))
+
+                                Text("Bis demnächst!")
+                                    .font(.system(size: 28, weight: .black, design: .serif))
+                                    .foregroundStyle(darkForest)
+                                    .multilineTextAlignment(.center)
+
+                                Text("Der Berg ist für dieses Jahr vorbei. Im nächsten warten wieder neue Challenges auf dich. Danke, dass du mitgemacht hast!")
+                                    .font(.headline)
+                                    .multilineTextAlignment(.center)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: 320)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(24)
+                        } else {
+                            VStack(spacing: 18) {
+                                Text("🏁")
+                                    .font(.system(size: 52))
+
+                                Text("Keine Challenge aktiv")
+                                    .font(.system(size: 28, weight: .black, design: .serif))
+                                    .foregroundStyle(darkForest)
+
+                                Text("Für den aktuellen Tag ist keine Challenge mehr verfügbar.")
+                                    .font(.headline)
+                                    .multilineTextAlignment(.center)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: 320)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(24)
+                        }
+                    }
+                    .padding(16)
+                    .padding(.top, 4)
+                    .padding(.bottom, 32)
+                }
+            }
+            .navigationTitle("Challenge")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Text("\\(completedChallengesCount)/\\(totalChallengesCount)")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(darkForest)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.white.opacity(0.82))
+                        )
+                        .accessibilityLabel("Absolvierte Challenges")
+                }
+            }
+            .alert("In Apple Karten öffnen?", isPresented: $challengeMapsAlertIsPresented) {
+                Button("Abbrechen", role: .cancel, action: onDismissOpenMaps)
+                Button("Öffnen", action: onConfirmOpenMaps)
+            } message: {
+                Text("Möchtest du den Ort dieser Challenge in Apple Karten öffnen?")
+            }
+        }
+    }
+}
