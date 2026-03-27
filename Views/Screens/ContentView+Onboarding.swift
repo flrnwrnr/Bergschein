@@ -118,7 +118,7 @@ extension ContentView {
     var onboardingPages: [OnboardingPage] {
         [
             OnboardingPage(
-                icon: "🍻",
+                icon: "🎡",
                 title: "Der Bergschein ist zurück!",
                 text: "Hol dir für jeden Tag deinen Stempel am Berg ab und mach den großen Bergschein."
             ),

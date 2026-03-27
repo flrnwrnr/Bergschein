@@ -61,7 +61,7 @@ struct CheckInView: View {
                                     isUnlocked: isCurrentBadgeUnlocked
                                 )
                             } else if !hasOfficialOpeningStarted {
-                                Text("🍻")
+                                Text("🎡")
                                     .font(.system(size: 52))
                             } else {
                                 Image(systemName: stampStatusSymbol)

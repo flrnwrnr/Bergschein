@@ -37,7 +37,7 @@ struct ChallengeView: View {
                 ScrollView {
                     VStack(spacing: 18) {
                         if !hasChallengeSeasonEnded {
-                            Text("Hier findest du an jedem Bergtag eine Challenge rund um das Thema Kirchweih und Erlangen. Du kannst nur an genau diesem Tag mitmachen und an ausgewählten Tagen eine \\(Text(\"Belohnung\").fontWeight(.black).foregroundStyle(.primary)) erhalten.")
+                            Text(.init("Hier findest du an jedem Bergtag eine Challenge rund um das Thema Kirchweih und Erlangen. Du kannst nur an genau diesem Tag mitmachen und an ausgewählten Tagen eine **Belohnung** erhalten."))
                                 .font(.footnote.weight(.medium))
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(.secondary.opacity(0.9))
