@@ -54,7 +54,7 @@ extension ContentView {
                                     locationController.requestAccessForOnboarding()
                                 } label: {
                                     Label(
-                                        locationController.hasLocationAccess ? "Zugelassen" : "Zulassen",
+                                        locationController.hasLocationAccess ? "Standort verwendet" : "Weiter",
                                         systemImage: locationController.hasLocationAccess ? "checkmark" : "location.fill"
                                     )
                                 }

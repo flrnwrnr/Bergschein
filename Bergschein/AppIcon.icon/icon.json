@@ -7,6 +7,7 @@
       "layers" : [
         {
           "glass" : false,
+          "hidden" : true,
           "image-name" : "Ohne Titel 10.png",
           "name" : "Ohne Titel 10",
           "position" : {
@@ -18,7 +19,7 @@
           }
         },
         {
-          "hidden" : true,
+          "hidden" : false,
           "image-name" : "Image.png",
           "name" : "Image",
           "position" : {
