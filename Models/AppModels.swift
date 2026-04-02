@@ -84,6 +84,32 @@ struct ChallengeOverlayPresentation {
     let challenge: DailyChallenge
 }
 
+struct ChallengeReward: Identifiable {
+    let id: String
+    let icon: String
+    let imageName: String?
+    let title: String
+    let subtitle: String
+    let details: String
+    let infoURL: URL?
+    let redemptionHint: String
+
+    static let tbBasketballDrink = ChallengeReward(
+        id: "tb-basketball-drink",
+        icon: "",
+        imageName: "werbung_tb",
+        title: "Freigetränk freigeschaltet",
+        subtitle: "TB Erlangen Basketball",
+        details: "Du erhältst ein Freigetränk bei einem Damen 1 oder Herren 1 Spiel deiner Wahl.",
+        infoURL: URL(string: "https://www.instagram.com/tberlangenbasketball/"),
+        redemptionHint: "Hinweis: Der Einlösen-Button darf nur einmal von der Getränkeausgabe verwendet werden."
+    )
+}
+
+struct ChallengeRewardOverlayPresentation {
+    let reward: ChallengeReward
+}
+
 struct DailyChallenge: Identifiable {
     let id: String
     let icon: String
@@ -182,7 +208,7 @@ struct DailyChallenge: Identifiable {
     static let all: [DailyChallenge] = [
         DailyChallenge(id: "2026-05-21", icon: "🥳", title: "Anstich an der T-Kreuzung", text: "Checke zwischen 16:00 und 18:00 Uhr am sogenannten T zum Anstich ein.", locationName: "T-Kreuzung", month: 5, day: 21, year: 2026, startHour: 16, startMinute: 0, endHour: 18, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60756, longitude: 11.00512), radius: 50, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-22", icon: "🪩", title: "Afterberg im Zirkel", text: "Checke am 22.05. zwischen 21:00 und 23:59 Uhr im Zirkel ein und feier im Klassiker.", locationName: "Zirkel", month: 5, day: 22, year: 2026, startHour: 20, startMinute: 0, endHour: 23, endMinute: 59, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60240, longitude: 11.00360), radius: 100, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-23", icon: "🌳", title: "Abstecher zum BMS", text: "Mach am 23.05. einen Abstecher zum BMS und hake die Challenge direkt vor Ort ab.", locationName: "BMS", month: 5, day: 23, year: 2026, startHour: 10, startMinute: 0, endHour: 14, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60266, longitude: 11.02082), radius: 200, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-23", icon: "🏀", title: "Ballen am BMS", text: "Mach am 23.05. einen Abstecher zum BMS, werfe dort ein paar Körbe, und hake die Challenge direkt vor Ort ab.", locationName: "BMS", month: 5, day: 23, year: 2026, startHour: 10, startMinute: 0, endHour: 18, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60266, longitude: 11.02082), radius: 200, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-24", icon: "🥨", title: "Frühschoppen am Erich Keller", text: "Mach am 24.05. einen Abstecher zum Frühschoppen am Erich Keller und hake die Challenge direkt vor Ort ab.", locationName: "Erich Keller", month: 5, day: 24, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60771, longitude: 11.00417), radius: 70, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-25", icon: "🎡", title: "Pflichtfahrt im Riesenrad", text: "Dreh am 25.05. zwischen 10:00 und 23:00 Uhr die Pflichtfahrt im Riesenrad, die zu jedem Berg einfach dazugehört, und hake die Challenge direkt vor Ort ab.", locationName: "Riesenrad", month: 5, day: 25, year: 2026, startHour: 10, startMinute: 0, endHour: 23, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60714, longitude: 11.00681), radius: 100, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-26", icon: "📚", title: "Besuch in der Bib", text: "Geh am 26.05. mal wieder in die Unibib, damit du das Lernen nicht ganz vergisst 😉", locationName: "Unibib", month: 5, day: 26, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59661, longitude: 11.00713), radius: 120, requiresLocationCheckIn: true),

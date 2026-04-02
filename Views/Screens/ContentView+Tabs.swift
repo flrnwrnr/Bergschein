@@ -335,10 +335,13 @@ extension ContentView {
             isWithinChallengeRadius: isWithinChallengeRadius(_:),
             challengeDistanceText: challengeDistanceText(for:),
             challengeDirectionAngle: challengeDirectionAngle(for:),
+            unlockedChallengeRewards: unlockedChallengeRewards,
+            isChallengeRewardRedeemed: isChallengeRewardRedeemed,
             onLocationTap: { challenge in
                 challengeMapsDestination = challenge
             },
             onClaimChallenge: claimActiveChallenge,
+            onRedeemChallengeReward: redeemChallengeReward,
             challengeMapsAlertIsPresented: challengeMapsAlertBinding,
             onConfirmOpenMaps: {
                 if let challengeMapsDestination {

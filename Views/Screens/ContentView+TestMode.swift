@@ -33,10 +33,12 @@ extension ContentView {
     func resetProgress() {
         unlockedBadgeIdentifiers = ""
         completedChallengeIdentifiers = ""
+        tbDrinkRewardUnlocked = false
+        tbDrinkRewardRedeemed = false
         testEventStartDay = ""
         withAnimation(overlayDismissAnimation) {
             activeBadgeOverlay = nil
-            activeChallengeOverlay = nil
+            activeChallengeRewardOverlay = nil
             activeMissedDayAlert = nil
         }
         dismissedMissedBadgeIdentifier = ""

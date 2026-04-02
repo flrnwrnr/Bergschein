@@ -112,3 +112,86 @@ struct ChallengeCardView: View {
         )
     }
 }
+
+struct ChallengeRewardCardView: View {
+    let reward: ChallengeReward
+    let isRedeemed: Bool
+    let onRedeemTap: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.12))
+                        .frame(width: 52, height: 52)
+
+                    if let imageName = reward.imageName,
+                       let uiImage = loadBundleUIImage(named: imageName) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 52, height: 52)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    } else {
+                        Text(reward.icon)
+                            .font(.system(size: 28))
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Belohnung")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+
+                    Text(reward.title)
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(reward.subtitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+
+                Spacer()
+            }
+
+            if let infoURL = reward.infoURL {
+                Text(.init("\(reward.details) [Mehr Infos](\(infoURL.absoluteString))"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(reward.details)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text(reward.redemptionHint)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if isRedeemed {
+                Label("Bereits eingelöst", systemImage: "checkmark.circle.fill")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                Button("Einlösen", action: onRedeemTap)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .font(.headline.weight(.bold))
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.accentColor.opacity(0.10))
+        )
+    }
+}

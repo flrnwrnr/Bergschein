@@ -517,6 +517,100 @@ struct ChallengeOverlayView: View {
     }
 }
 
+struct ChallengeRewardOverlayView: View {
+    let presentation: ChallengeRewardOverlayPresentation
+    let darkForest: Color
+    let onDismiss: () -> Void
+    @State private var animateIn = false
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+                .opacity(animateIn ? 1 : 0)
+                .transition(.opacity)
+
+            Color.black.opacity(animateIn ? 0.22 : 0)
+                .ignoresSafeArea()
+                .transition(.opacity)
+
+            VStack(spacing: 18) {
+                Text("Belohnung frei-\ngeschaltet")
+                    .font(.custom(BrandFont.primaryName, size: 30))
+                    .foregroundStyle(darkForest)
+                    .multilineTextAlignment(.center)
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.12))
+                        .frame(width: 104, height: 104)
+
+                    if let imageName = presentation.reward.imageName,
+                       let uiImage = loadBundleUIImage(named: imageName) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 104, height: 104)
+                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    } else {
+                        Text(presentation.reward.icon)
+                            .font(.system(size: 52))
+                    }
+                }
+
+                VStack(spacing: 10) {
+                    Text(presentation.reward.subtitle)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+
+                    Text(presentation.reward.details)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Button("Schließen", action: onDismiss)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+            }
+            .padding(28)
+            .frame(maxWidth: 340)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Color.appCardBackground)
+
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.appCardBackground, Color.accentColor.opacity(0.16)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .stroke(Color.appSoftStroke, lineWidth: 1)
+            )
+            .shadow(color: Color.appSoftShadow.opacity(animateIn ? 1 : 0.35), radius: 24, y: 12)
+            .padding(24)
+            .scaleEffect(animateIn ? 1 : 0.92)
+            .offset(y: animateIn ? 0 : 22)
+            .opacity(animateIn ? 1 : 0)
+            .transition(overlayCardTransition)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.44, dampingFraction: 0.84)) {
+                animateIn = true
+            }
+        }
+    }
+}
+
 struct MissedDayOverlayView: View {
     let presentation: MissedDayAlertPresentation
     let darkForest: Color

@@ -60,6 +60,8 @@ struct ContentView: View {
     @StateObject var tipJarStore = TipJarStore()
     @AppStorage("unlockedBadgeIdentifiers") var unlockedBadgeIdentifiers = ""
     @AppStorage("completedChallengeIdentifiers") var completedChallengeIdentifiers = ""
+    @AppStorage("tbDrinkRewardUnlocked") var tbDrinkRewardUnlocked = false
+    @AppStorage("tbDrinkRewardRedeemed") var tbDrinkRewardRedeemed = false
     @AppStorage("testEventStartDay") var testEventStartDay = ""
     @AppStorage("dismissedMissedBadgeIdentifier") var dismissedMissedBadgeIdentifier = ""
     @AppStorage("hapticsEnabled") var hapticsEnabled = true
@@ -69,7 +71,7 @@ struct ContentView: View {
     @AppStorage("stampNotificationsEnabled") var stampNotificationsEnabled = true
     @AppStorage("challengeNotificationsEnabled") var challengeNotificationsEnabled = true
     @State var activeBadgeOverlay: BadgeOverlayPresentation?
-    @State var activeChallengeOverlay: ChallengeOverlayPresentation?
+    @State var activeChallengeRewardOverlay: ChallengeRewardOverlayPresentation?
     @State var activeMissedDayAlert: MissedDayAlertPresentation?
     @State var activeBadgeShareSheet: BadgeShareSheetItem?
     @State var currentDate = Date()
@@ -197,13 +199,13 @@ struct ContentView: View {
                         }
                     }
                 )
-            } else if let activeChallengeOverlay {
-                ChallengeOverlayView(
-                    presentation: activeChallengeOverlay,
+            } else if let activeChallengeRewardOverlay {
+                ChallengeRewardOverlayView(
+                    presentation: activeChallengeRewardOverlay,
                     darkForest: darkForest,
                     onDismiss: {
                         withAnimation(overlayDismissAnimation) {
-                            self.activeChallengeOverlay = nil
+                            self.activeChallengeRewardOverlay = nil
                         }
                     }
                 )

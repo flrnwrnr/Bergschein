@@ -1,6 +1,22 @@
 import SwiftUI
 
 extension ContentView {
+    var challengeReward: ChallengeReward {
+        .tbBasketballDrink
+    }
+
+    var unlockedChallengeRewards: [ChallengeReward] {
+        var rewards: [ChallengeReward] = []
+        if tbDrinkRewardUnlocked {
+            rewards.append(challengeReward)
+        }
+        return rewards
+    }
+
+    var isChallengeRewardRedeemed: Bool {
+        tbDrinkRewardRedeemed
+    }
+
     var completedChallenges: Set<String> {
         Set(
             completedChallengeIdentifiers
@@ -128,9 +144,23 @@ extension ContentView {
         updatedChallenges.insert(activeChallenge.id)
         completedChallengeIdentifiers = updatedChallenges.sorted().joined(separator: ",")
         triggerSuccessHaptic()
-        withAnimation(overlayPresentationAnimation) {
-            activeChallengeOverlay = ChallengeOverlayPresentation(challenge: activeChallenge)
+
+        if activeChallenge.id == "2026-05-23" && !tbDrinkRewardUnlocked {
+            tbDrinkRewardUnlocked = true
+            tbDrinkRewardRedeemed = false
+            withAnimation(overlayPresentationAnimation) {
+                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: challengeReward)
+            }
         }
+    }
+
+    func redeemChallengeReward() {
+        guard tbDrinkRewardUnlocked, !tbDrinkRewardRedeemed else {
+            return
+        }
+
+        tbDrinkRewardRedeemed = true
+        triggerSuccessHaptic()
     }
 
     func isChallengeCompleted(_ challenge: DailyChallenge) -> Bool {
