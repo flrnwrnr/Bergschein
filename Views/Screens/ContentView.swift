@@ -27,6 +27,7 @@ struct ContentView: View {
     enum SettingsRoute: Hashable, Identifiable {
         case changeLog
         case credits
+        case raffle
         case tips
 
         var id: Self { self }

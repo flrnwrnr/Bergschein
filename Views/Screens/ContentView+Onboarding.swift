@@ -41,6 +41,8 @@ extension ContentView {
                                 .font(.custom(BrandFont.primaryName, size: 34))
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(darkForest)
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
 
                             Text(page.text)
                                 .font(.title3)
@@ -124,7 +126,7 @@ extension ContentView {
             ),
             OnboardingPage(
                 icon: "location.fill",
-                title: "Standort-\nzugriff ist nötig",
+                title: "Standort-\nzugriff",
                 text: "Die App prüft deinen Standort, da der Check-in nur direkt am Berg möglich ist.",
                 requiresLocationAuthorization: true
             ),
@@ -132,6 +134,11 @@ extension ContentView {
                 icon: "checkmark.shield.fill",
                 title: "Einfach und kostenlos",
                 text: "Die App ist kostenlos, benötigt keinen Account und speichert keine persönlichen Daten. Was will man mehr?"
+            ),
+            OnboardingPage(
+                icon: "gift.fill",
+                title: "Verlosung",
+                text: "Mit jedem gesammelten Stempel sicherst du dir die Chance auf Preise bei unserer Verlosung. Viel Erfolg!"
             )
         ]
     }
