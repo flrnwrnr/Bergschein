@@ -5,9 +5,182 @@
 
 import Combine
 import CoreLocation
+import Foundation
 import MapKit
 import StoreKit
 import SwiftUI
+
+enum AnalyticsEventType: String, Codable {
+    case badgeClaimed = "badge_claimed"
+    case challengeCompleted = "challenge_completed"
+}
+
+actor AnalyticsService {
+    private enum Config {
+        static let endpointInfoKey = "ANALYTICS_ENDPOINT"
+        static let appTokenInfoKey = "ANALYTICS_APP_TOKEN"
+        static let fallbackEndpoint = "https://api.derbergschein.de/track.php"
+        static let pendingQueueStorageKey = "analyticsPendingEventQueueV1"
+        static let requestTimeout: TimeInterval = 8
+        static let maxQueuedEvents = 200
+
+        static var endpoint: String {
+            guard let configuredEndpoint = Bundle.main.object(forInfoDictionaryKey: endpointInfoKey) as? String,
+                  !configuredEndpoint.isEmpty else {
+                return fallbackEndpoint
+            }
+            return configuredEndpoint
+        }
+
+        static var appToken: String {
+            (Bundle.main.object(forInfoDictionaryKey: appTokenInfoKey) as? String) ?? ""
+        }
+    }
+
+    private struct EventPayload: Codable {
+        let installID: String
+        let eventType: String
+        let eventTime: String
+        let badgeCountAfterEvent: Int
+        let isPerfectSoFar: Bool
+        let challengeCountAfterEvent: Int
+
+        enum CodingKeys: String, CodingKey {
+            case installID = "install_id"
+            case eventType = "event_type"
+            case eventTime = "event_time"
+            case badgeCountAfterEvent = "badge_count_after_event"
+            case isPerfectSoFar = "is_perfect_so_far"
+            case challengeCountAfterEvent = "challenge_count_after_event"
+        }
+    }
+
+    private let iso8601Formatter = ISO8601DateFormatter()
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = Config.requestTimeout
+        configuration.timeoutIntervalForResource = Config.requestTimeout + 4
+        return URLSession(configuration: configuration)
+    }()
+
+    func track(
+        eventType: AnalyticsEventType,
+        installID: String,
+        eventDate: Date,
+        badgeCountAfterEvent: Int,
+        isPerfectSoFar: Bool,
+        challengeCountAfterEvent: Int
+    ) async {
+        guard let url = URL(string: Config.endpoint),
+              !Config.appToken.isEmpty else {
+            return
+        }
+
+        let payload = EventPayload(
+            installID: installID,
+            eventType: eventType.rawValue,
+            eventTime: iso8601Formatter.string(from: eventDate),
+            badgeCountAfterEvent: badgeCountAfterEvent,
+            isPerfectSoFar: isPerfectSoFar,
+            challengeCountAfterEvent: challengeCountAfterEvent
+        )
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = Config.requestTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(Config.appToken, forHTTPHeaderField: "X-App-Token")
+
+        do {
+            request.httpBody = try JSONEncoder().encode(payload)
+            if try await send(request: request) {
+                await flushPendingEvents()
+            } else {
+                enqueuePendingEvent(payload)
+            }
+        } catch {
+            enqueuePendingEvent(payload)
+        }
+    }
+
+    func flushPendingEvents() async {
+        guard let url = URL(string: Config.endpoint),
+              !Config.appToken.isEmpty else {
+            return
+        }
+
+        var queue = loadPendingEvents()
+        guard !queue.isEmpty else {
+            return
+        }
+
+        var remainingQueue: [EventPayload] = []
+
+        while !queue.isEmpty {
+            let payload = queue.removeFirst()
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.timeoutInterval = Config.requestTimeout
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(Config.appToken, forHTTPHeaderField: "X-App-Token")
+
+            do {
+                request.httpBody = try JSONEncoder().encode(payload)
+                let sent = try await send(request: request)
+                if !sent {
+                    remainingQueue.append(payload)
+                    remainingQueue.append(contentsOf: queue)
+                    break
+                }
+            } catch {
+                remainingQueue.append(payload)
+                remainingQueue.append(contentsOf: queue)
+                break
+            }
+        }
+
+        savePendingEvents(remainingQueue)
+    }
+
+    private func send(request: URLRequest) async throws -> Bool {
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return false
+        }
+
+        return (200...299).contains(httpResponse.statusCode)
+    }
+
+    private func enqueuePendingEvent(_ payload: EventPayload) {
+        var queue = loadPendingEvents()
+        queue.append(payload)
+
+        if queue.count > Config.maxQueuedEvents {
+            queue = Array(queue.suffix(Config.maxQueuedEvents))
+        }
+
+        savePendingEvents(queue)
+    }
+
+    private func loadPendingEvents() -> [EventPayload] {
+        guard let data = UserDefaults.standard.data(forKey: Config.pendingQueueStorageKey) else {
+            return []
+        }
+
+        return (try? JSONDecoder().decode([EventPayload].self, from: data)) ?? []
+    }
+
+    private func savePendingEvents(_ queue: [EventPayload]) {
+        if queue.isEmpty {
+            UserDefaults.standard.removeObject(forKey: Config.pendingQueueStorageKey)
+            return
+        }
+
+        if let data = try? JSONEncoder().encode(queue) {
+            UserDefaults.standard.set(data, forKey: Config.pendingQueueStorageKey)
+        }
+    }
+}
 
 @MainActor
 final class TipJarStore: ObservableObject {

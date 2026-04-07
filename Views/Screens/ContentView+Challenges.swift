@@ -145,6 +145,22 @@ extension ContentView {
         completedChallengeIdentifiers = updatedChallenges.sorted().joined(separator: ",")
         triggerSuccessHaptic()
 
+        let badgeCountAfterEvent = unlockedBadges.count
+        let perfectSoFar = isPerfectSoFar(with: unlockedBadges)
+        let challengeCountAfterEvent = updatedChallenges.count
+        let installID = analyticsInstallID
+        let eventDate = currentDate
+        Task {
+            await analyticsService.track(
+                eventType: .challengeCompleted,
+                installID: installID,
+                eventDate: eventDate,
+                badgeCountAfterEvent: badgeCountAfterEvent,
+                isPerfectSoFar: perfectSoFar,
+                challengeCountAfterEvent: challengeCountAfterEvent
+            )
+        }
+
         if activeChallenge.id == "2026-05-23" && !tbDrinkRewardUnlocked {
             tbDrinkRewardUnlocked = true
             tbDrinkRewardRedeemed = false
@@ -168,6 +184,10 @@ extension ContentView {
     }
 
     func isWithinChallengeWindow(_ challenge: DailyChallenge) -> Bool {
+        if isTestModeActive {
+            return true
+        }
+
         guard let startDate = challenge.startDate, let endDate = challenge.endDate else {
             return Calendar.current.isDate(challenge.date, inSameDayAs: currentDate)
         }
@@ -176,6 +196,10 @@ extension ContentView {
     }
 
     func isWithinChallengeRadius(_ challenge: DailyChallenge) -> Bool {
+        if isTestModeActive {
+            return true
+        }
+
         guard let center = challenge.centerCoordinate, let radius = challenge.radius else {
             return true
         }

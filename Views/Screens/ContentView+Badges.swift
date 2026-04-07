@@ -259,6 +259,23 @@ extension ContentView {
         var updatedBadges = unlockedBadges
         updatedBadges.insert(currentBadge.id)
         unlockedBadgeIdentifiers = updatedBadges.sorted().joined(separator: ",")
+
+        let badgeCountAfterEvent = updatedBadges.count
+        let perfectSoFar = isPerfectSoFar(with: updatedBadges)
+        let challengeCountAfterEvent = completedChallengesCount
+        let installID = analyticsInstallID
+        let eventDate = currentDate
+        Task {
+            await analyticsService.track(
+                eventType: .badgeClaimed,
+                installID: installID,
+                eventDate: eventDate,
+                badgeCountAfterEvent: badgeCountAfterEvent,
+                isPerfectSoFar: perfectSoFar,
+                challengeCountAfterEvent: challengeCountAfterEvent
+            )
+        }
+
         withAnimation(overlayPresentationAnimation) {
             activeBadgeOverlay = BadgeOverlayPresentation(
                 badge: currentBadge,
@@ -312,5 +329,38 @@ extension ContentView {
             return "badge12b"
         }
         return badge.imageName
+    }
+
+    func isPerfectSoFar(with badges: Set<String>) -> Bool {
+        guard !badgeDefinitions.isEmpty else {
+            return true
+        }
+
+        let currentBadgeIndex = currentBadge.flatMap { badge in
+            badgeDefinitions.firstIndex(where: { $0.id == badge.id })
+        }
+
+        let anchorIndex: Int
+        if let currentBadgeIndex {
+            let todayBadge = badgeDefinitions[currentBadgeIndex]
+            if badges.contains(todayBadge.id) {
+                anchorIndex = currentBadgeIndex
+            } else {
+                anchorIndex = max(currentBadgeIndex - 1, 0)
+            }
+        } else {
+            anchorIndex = badgeDefinitions.count - 1
+        }
+
+        guard anchorIndex >= 0 else {
+            return true
+        }
+
+        for index in 0...anchorIndex {
+            if !badges.contains(badgeDefinitions[index].id) {
+                return false
+            }
+        }
+        return true
     }
 }

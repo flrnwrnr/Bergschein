@@ -56,9 +56,11 @@ struct ContentView: View {
     let challengeDefinitions = DailyChallenge.all
     let overlayPresentationAnimation = Animation.spring(response: 0.42, dampingFraction: 0.82)
     let overlayDismissAnimation = Animation.easeInOut(duration: 0.22)
+    let analyticsService = AnalyticsService()
 
     @StateObject var locationController = LocationController()
     @StateObject var tipJarStore = TipJarStore()
+    @AppStorage("analyticsInstallID") var analyticsInstallID = UUID().uuidString
     @AppStorage("unlockedBadgeIdentifiers") var unlockedBadgeIdentifiers = ""
     @AppStorage("completedChallengeIdentifiers") var completedChallengeIdentifiers = ""
     @AppStorage("tbDrinkRewardUnlocked") var tbDrinkRewardUnlocked = false
@@ -135,6 +137,9 @@ struct ContentView: View {
                 refreshNotificationAuthorizationState()
                 applyPendingNotificationDestinationIfNeeded()
                 refreshScheduledNotifications()
+                Task {
+                    await analyticsService.flushPendingEvents()
+                }
             }
         }
         .onChange(of: hasSeenOnboarding) { _, hasSeenOnboarding in
@@ -233,6 +238,9 @@ struct ContentView: View {
             refreshNotificationAuthorizationState()
             applyPendingNotificationDestinationIfNeeded()
             refreshScheduledNotifications()
+            Task {
+                await analyticsService.flushPendingEvents()
+            }
         }
     }
 }

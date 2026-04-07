@@ -93,9 +93,22 @@
 		A69F0BD22F6D5A9800D2C755 /* Bergschein.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bergschein.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A60F1DBD2F853BB100FCC29E /* Exceptions for "Bergschein" folder in "Bergschein" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A69F0BD12F6D5A9800D2C755 /* Bergschein */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A69F0BD42F6D5A9800D2C755 /* Bergschein */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A60F1DBD2F853BB100FCC29E /* Exceptions for "Bergschein" folder in "Bergschein" target */,
+			);
 			path = Bergschein;
 			sourceTree = "<group>";
 		};
@@ -491,6 +504,7 @@
 				DEVELOPMENT_TEAM = 4PWX2BVX67;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Bergschein/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Der Bergschein";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Der Standort wird verwendet, um zu prüfen, ob du dich am Berg oder in einer Challenge-Zone befindest, damit du zum Beispiel den Check-in-Button für den Tagesstempel oder eine Challenge nur direkt vor Ort nutzen kannst.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -529,6 +543,7 @@
 				DEVELOPMENT_TEAM = 4PWX2BVX67;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Bergschein/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Der Bergschein";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Der Standort wird verwendet, um zu prüfen, ob du dich am Berg oder in einer Challenge-Zone befindest, damit du zum Beispiel den Check-in-Button für den Tagesstempel oder eine Challenge nur direkt vor Ort nutzen kannst.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
