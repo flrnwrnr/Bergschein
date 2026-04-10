@@ -50,6 +50,7 @@ struct ContentView: View {
 
     let claimStartHour = 10
     let claimEndHour = 23
+    let raffleTermsVersion = "2026-04-02"
     let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     let locationRefreshClock = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
     let badgeDefinitions = BadgeDefinition.all
@@ -65,6 +66,14 @@ struct ContentView: View {
     @AppStorage("completedChallengeIdentifiers") var completedChallengeIdentifiers = ""
     @AppStorage("tbDrinkRewardUnlocked") var tbDrinkRewardUnlocked = false
     @AppStorage("tbDrinkRewardRedeemed") var tbDrinkRewardRedeemed = false
+    @AppStorage("zirkelRewardUnlocked") var zirkelRewardUnlocked = false
+    @AppStorage("zirkelRewardRedeemed") var zirkelRewardRedeemed = false
+    @AppStorage("bibOfferRewardUnlocked") var bibOfferRewardUnlocked = false
+    @AppStorage("bibOfferRewardRedeemed") var bibOfferRewardRedeemed = false
+    @AppStorage("hasJoinedRaffle") var hasJoinedRaffle = false
+    @AppStorage("raffleConsentTimestamp") var raffleConsentTimestamp = ""
+    @AppStorage("raffleContactEmail") var raffleContactEmail = ""
+    @AppStorage("raffleContactName") var raffleContactName = ""
     @AppStorage("testEventStartDay") var testEventStartDay = ""
     @AppStorage("dismissedMissedBadgeIdentifier") var dismissedMissedBadgeIdentifier = ""
     @AppStorage("hapticsEnabled") var hapticsEnabled = true
@@ -89,6 +98,15 @@ struct ContentView: View {
     @State var morningOutsideBannerVariant: MorningOutsideBannerVariant = .ffwd
     @State var adSlotOverride: AdSlotOverride = .automatic
     @State var ffwdLogoTapCount = 0
+    @State var isRaffleEntrySheetPresented = false
+    @State var raffleEntryEmail = ""
+    @State var raffleEntryName = ""
+    @State var raffleEntryAcceptedTerms = false
+    @State var raffleEntryIsAdult = false
+    @State var raffleEntryAcceptedContact = false
+    @State var isRaffleTermsInSheetPresented = false
+    @State var isRaffleEntrySubmitInProgress = false
+    @State var raffleEntrySubmitErrorMessage: String?
 
     var body: some View {
         TabView(selection: $selectedTab) {

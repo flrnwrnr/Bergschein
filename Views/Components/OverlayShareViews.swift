@@ -32,6 +32,8 @@ struct BadgeOverlayView: View {
                     Text(presentation.title)
                         .font(.custom(BrandFont.primaryName, size: 30))
                         .foregroundStyle(darkForest)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Group {
                         if let imageName {
@@ -52,17 +54,22 @@ struct BadgeOverlayView: View {
                         Text(presentation.badge.name)
                             .font(.title2.weight(.black))
                             .foregroundStyle(darkForest)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                        if let subtitle = presentation.badge.subtitle {
+                        if let subtitle = presentation.subtitleOverride ?? presentation.badge.subtitle {
                             Text(subtitle)
                                 .font(.headline.weight(.semibold))
                                 .foregroundStyle(Color.accentColor)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
-                        Text(presentation.badge.overlayMessage)
+                        Text(presentation.messageOverride ?? presentation.badge.overlayMessage)
                             .font(.headline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     Button(presentation.buttonTitle, action: onDismiss)
@@ -450,6 +457,8 @@ struct ChallengeOverlayView: View {
                 Text(presentation.challenge.completionTitle)
                     .font(.custom(BrandFont.primaryName, size: 30))
                     .foregroundStyle(darkForest)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 ZStack {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -465,6 +474,7 @@ struct ChallengeOverlayView: View {
                         .font(.title2.weight(.black))
                         .foregroundStyle(darkForest)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(presentation.challenge.dateLabel)
                         .font(.headline.weight(.semibold))
@@ -540,6 +550,7 @@ struct ChallengeRewardOverlayView: View {
                     .font(.custom(BrandFont.primaryName, size: 30))
                     .foregroundStyle(darkForest)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 ZStack {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -563,6 +574,8 @@ struct ChallengeRewardOverlayView: View {
                     Text(presentation.reward.subtitle)
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(Color.accentColor)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(presentation.reward.details)
                         .font(.headline)
@@ -639,16 +652,21 @@ struct MissedDayOverlayView: View {
                 Text("Stempel verpasst")
                     .font(.custom(BrandFont.primaryName, size: 30))
                     .foregroundStyle(darkForest)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 VStack(spacing: 10) {
                     Text("Tag \(badge.displayDayIndex) am \(badge.name)")
                         .font(.title3.weight(.black))
                         .foregroundStyle(darkForest)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text("Du hast den Stempel für diesen Tag nicht geholt. Den großen Bergschein kannst du dadurch nicht mehr erreichen, aber du kannst weiterhin alle kommenden Tage sammeln.")
                         .font(.headline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Button("Verstanden", action: onDismiss)

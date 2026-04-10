@@ -15,11 +15,25 @@ enum AnalyticsEventType: String, Codable {
     case challengeCompleted = "challenge_completed"
 }
 
+struct RaffleEntryRequest {
+    let installID: String
+    let email: String
+    let name: String?
+    let termsVersion: String
+    let contactConsent: Bool
+    let ageConfirmed: Bool
+    let badgeCountAtConsent: Int
+    let challengeCountAtConsent: Int
+    let isPerfectSoFar: Bool
+}
+
 actor AnalyticsService {
     private enum Config {
         static let endpointInfoKey = "ANALYTICS_ENDPOINT"
         static let appTokenInfoKey = "ANALYTICS_APP_TOKEN"
+        static let raffleEndpointInfoKey = "RAFFLE_ENDPOINT"
         static let fallbackEndpoint = "https://api.derbergschein.de/track.php"
+        static let fallbackRaffleEndpoint = "https://api.derbergschein.de/raffle.php"
         static let pendingQueueStorageKey = "analyticsPendingEventQueueV1"
         static let requestTimeout: TimeInterval = 8
         static let maxQueuedEvents = 200
@@ -34,6 +48,14 @@ actor AnalyticsService {
 
         static var appToken: String {
             (Bundle.main.object(forInfoDictionaryKey: appTokenInfoKey) as? String) ?? ""
+        }
+
+        static var raffleEndpoint: String {
+            guard let configuredEndpoint = Bundle.main.object(forInfoDictionaryKey: raffleEndpointInfoKey) as? String,
+                  !configuredEndpoint.isEmpty else {
+                return fallbackRaffleEndpoint
+            }
+            return configuredEndpoint
         }
     }
 
@@ -52,6 +74,30 @@ actor AnalyticsService {
             case badgeCountAfterEvent = "badge_count_after_event"
             case isPerfectSoFar = "is_perfect_so_far"
             case challengeCountAfterEvent = "challenge_count_after_event"
+        }
+    }
+
+    private struct RaffleEntryPayload: Codable {
+        let installID: String
+        let email: String
+        let name: String?
+        let termsVersion: String
+        let contactConsent: Bool
+        let ageConfirmed: Bool
+        let badgeCountAtConsent: Int
+        let challengeCountAtConsent: Int
+        let isPerfectSoFar: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case installID = "install_id"
+            case email
+            case name
+            case termsVersion = "terms_version"
+            case contactConsent = "contact_consent"
+            case ageConfirmed = "age_confirmed"
+            case badgeCountAtConsent = "badge_count_at_consent"
+            case challengeCountAtConsent = "challenge_count_at_consent"
+            case isPerfectSoFar = "is_perfect_so_far"
         }
     }
 
@@ -140,6 +186,38 @@ actor AnalyticsService {
         }
 
         savePendingEvents(remainingQueue)
+    }
+
+    func submitRaffleEntry(_ requestModel: RaffleEntryRequest) async -> Bool {
+        guard let url = URL(string: Config.raffleEndpoint),
+              !Config.appToken.isEmpty else {
+            return false
+        }
+
+        let payload = RaffleEntryPayload(
+            installID: requestModel.installID,
+            email: requestModel.email,
+            name: requestModel.name,
+            termsVersion: requestModel.termsVersion,
+            contactConsent: requestModel.contactConsent,
+            ageConfirmed: requestModel.ageConfirmed,
+            badgeCountAtConsent: requestModel.badgeCountAtConsent,
+            challengeCountAtConsent: requestModel.challengeCountAtConsent,
+            isPerfectSoFar: requestModel.isPerfectSoFar
+        )
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = Config.requestTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(Config.appToken, forHTTPHeaderField: "X-App-Token")
+
+        do {
+            request.httpBody = try JSONEncoder().encode(payload)
+            return try await send(request: request)
+        } catch {
+            return false
+        }
     }
 
     private func send(request: URLRequest) async throws -> Bool {

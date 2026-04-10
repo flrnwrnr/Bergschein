@@ -1,20 +1,50 @@
 import SwiftUI
 
 extension ContentView {
-    var challengeReward: ChallengeReward {
-        .tbBasketballDrink
+    var challengeRewardsByID: [String: ChallengeReward] {
+        [
+            ChallengeReward.zirkelFreeEntry.id: .zirkelFreeEntry,
+            ChallengeReward.tbBasketballDrink.id: .tbBasketballDrink,
+            ChallengeReward.bibOfferCode.id: .bibOfferCode,
+        ]
     }
 
     var unlockedChallengeRewards: [ChallengeReward] {
         var rewards: [ChallengeReward] = []
+        if zirkelRewardUnlocked {
+            rewards.append(.zirkelFreeEntry)
+        }
         if tbDrinkRewardUnlocked {
-            rewards.append(challengeReward)
+            rewards.append(.tbBasketballDrink)
+        }
+        if bibOfferRewardUnlocked {
+            rewards.append(.bibOfferCode)
         }
         return rewards
     }
 
-    var isChallengeRewardRedeemed: Bool {
-        tbDrinkRewardRedeemed
+    func isChallengeRewardRedeemed(_ reward: ChallengeReward) -> Bool {
+        switch reward.id {
+        case ChallengeReward.zirkelFreeEntry.id:
+            return zirkelRewardRedeemed
+        case ChallengeReward.tbBasketballDrink.id:
+            return tbDrinkRewardRedeemed
+        case ChallengeReward.bibOfferCode.id:
+            return bibOfferRewardRedeemed
+        default:
+            return false
+        }
+    }
+
+    func canRedeemChallengeReward(_ reward: ChallengeReward) -> Bool {
+        if reward.id == ChallengeReward.zirkelFreeEntry.id {
+            let components = Calendar.current.dateComponents([.year, .month], from: currentDate)
+            guard components.year == 2026, let month = components.month else {
+                return false
+            }
+            return month == 6 || month == 7
+        }
+        return true
     }
 
     var completedChallenges: Set<String> {
@@ -165,17 +195,51 @@ extension ContentView {
             tbDrinkRewardUnlocked = true
             tbDrinkRewardRedeemed = false
             withAnimation(overlayPresentationAnimation) {
-                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: challengeReward)
+                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: .tbBasketballDrink)
+            }
+        }
+
+        if activeChallenge.id == "2026-05-22" && !zirkelRewardUnlocked {
+            zirkelRewardUnlocked = true
+            zirkelRewardRedeemed = false
+            withAnimation(overlayPresentationAnimation) {
+                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: .zirkelFreeEntry)
+            }
+        }
+
+        if activeChallenge.id == "2026-05-26" && !bibOfferRewardUnlocked {
+            bibOfferRewardUnlocked = true
+            bibOfferRewardRedeemed = false
+            withAnimation(overlayPresentationAnimation) {
+                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: .bibOfferCode)
             }
         }
     }
 
-    func redeemChallengeReward() {
-        guard tbDrinkRewardUnlocked, !tbDrinkRewardRedeemed else {
+    func redeemChallengeReward(_ reward: ChallengeReward) {
+        switch reward.id {
+        case ChallengeReward.zirkelFreeEntry.id:
+            guard zirkelRewardUnlocked, !zirkelRewardRedeemed, canRedeemChallengeReward(reward) else {
+                return
+            }
+            zirkelRewardRedeemed = true
+        case ChallengeReward.tbBasketballDrink.id:
+            guard tbDrinkRewardUnlocked, !tbDrinkRewardRedeemed else {
+                return
+            }
+            tbDrinkRewardRedeemed = true
+        case ChallengeReward.bibOfferCode.id:
+            guard bibOfferRewardUnlocked, !bibOfferRewardRedeemed else {
+                return
+            }
+            bibOfferRewardRedeemed = true
+            if let redeemURL = URL(string: "https://apps.apple.com/redeem?ctx=offercodes&id=6752996931&code=BERGSCHEIN") {
+                openURL(redeemURL)
+            }
+        default:
             return
         }
 
-        tbDrinkRewardRedeemed = true
         triggerSuccessHaptic()
     }
 

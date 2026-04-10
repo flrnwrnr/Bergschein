@@ -20,6 +20,7 @@ struct OnboardingPage {
     let title: String
     let text: String
     var requiresLocationAuthorization = false
+    var showsRafflePrizes = false
 
     var usesEmojiIcon: Bool {
         !icon.allSatisfy(\.isASCII)
@@ -69,6 +70,8 @@ struct BadgeOverlayPresentation {
     let title: String
     let buttonTitle: String
     let switchesToBadgeTab: Bool
+    let subtitleOverride: String?
+    let messageOverride: String?
 }
 
 struct BadgeShareSheetItem: Identifiable {
@@ -103,6 +106,28 @@ struct ChallengeReward: Identifiable {
         details: "Du erhältst ein Freigetränk bei einem Damen 1 oder Herren 1 Spiel deiner Wahl.",
         infoURL: URL(string: "https://www.instagram.com/tberlangenbasketball/"),
         redemptionHint: "Hinweis: Der Einlösen-Button darf nur einmal von der Getränkeausgabe verwendet werden."
+    )
+
+    static let zirkelFreeEntry = ChallengeReward(
+        id: "zirkel-free-entry",
+        icon: "",
+        imageName: "werbung_zirkel",
+        title: "Kostenloser Eintritt freigeschaltet",
+        subtitle: "Der Zirkel",
+        details: "Du erhältst einen kostenlosen Eintritt in den Zirkel in den Monaten Juni oder Juli 2026.",
+        infoURL: URL(string: "https://zirkel-club.de"),
+        redemptionHint: "Hinweis: Der Einlösen-Button kann nur einmal und nur im Juni/Juli 2026 verwendet werden."
+    )
+
+    static let bibOfferCode = ChallengeReward(
+        id: "bib-offer-code",
+        icon: "",
+        imageName: "studybro",
+        title: "Promo Code freigeschaltet",
+        subtitle: "Study Bro",
+        details: "Du erhältst über den Promo Code ein kostenloses Jahresabo für die App Study Bro.",
+        infoURL: nil,
+        redemptionHint: "Hinweis: Der Einlösen-Button öffnet den Promo-Code-Link nur einmal und kann danach nicht erneut verwendet werden."
     )
 }
 

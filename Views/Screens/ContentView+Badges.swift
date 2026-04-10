@@ -276,12 +276,27 @@ extension ContentView {
             )
         }
 
+        let hasMissedDay = blockingMissedBadge != nil
+        let isFinalDayBadge = currentBadge.id == "06-01"
+        let subtitleOverride: String? = hasMissedDay && isFinalDayBadge ? "Letzter Bergtag" : nil
+        let messageOverride: String? = {
+            guard hasMissedDay else {
+                return nil
+            }
+            if isFinalDayBadge {
+                return "Stark! Du hast dir den Stempel für den letzten Bergtag geholt."
+            }
+            return "Stark! Du hast dir den Stempel für heute geholt."
+        }()
+
         withAnimation(overlayPresentationAnimation) {
             activeBadgeOverlay = BadgeOverlayPresentation(
                 badge: currentBadge,
                 title: "Stempel geholt!",
                 buttonTitle: "Weiter",
-                switchesToBadgeTab: true
+                switchesToBadgeTab: true,
+                subtitleOverride: subtitleOverride,
+                messageOverride: messageOverride
             )
         }
     }

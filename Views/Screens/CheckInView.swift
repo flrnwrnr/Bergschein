@@ -26,9 +26,12 @@ struct CheckInView: View {
     let distanceText: String?
     let directionAngle: Double
     let currentAdBanner: AdBanner
+    let shouldShowRaffleCallout: Bool
+    let raffleCalloutText: String
     @Binding var isShowingMapsPrompt: Bool
     let onClaimTap: () -> Void
     let onOpenMaps: () -> Void
+    let onRaffleTap: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -113,6 +116,38 @@ struct CheckInView: View {
 
                     if let locationPermissionWarningText {
                         PermissionWarningCard(text: locationPermissionWarningText)
+                    }
+
+                    if shouldShowRaffleCallout {
+                        Button(action: onRaffleTap) {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Jetzt an der Verlosung teilnehmen")
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(darkForest)
+                                        .multilineTextAlignment(.leading)
+
+                                    Text(raffleCalloutText)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.leading)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(Color.accentColor.opacity(0.14))
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     if isInAllowedRegion {

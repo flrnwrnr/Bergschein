@@ -35,6 +35,10 @@ extension ContentView {
         completedChallengeIdentifiers = ""
         tbDrinkRewardUnlocked = false
         tbDrinkRewardRedeemed = false
+        zirkelRewardUnlocked = false
+        zirkelRewardRedeemed = false
+        bibOfferRewardUnlocked = false
+        bibOfferRewardRedeemed = false
         testEventStartDay = ""
         withAnimation(overlayDismissAnimation) {
             activeBadgeOverlay = nil

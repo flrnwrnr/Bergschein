@@ -16,7 +16,7 @@ extension ContentView {
             currentBadgeImageName: currentBadge.flatMap(resolvedImageName(for:)),
             isCurrentBadgeUnlocked: isCurrentBadgeUnlocked,
             stampStatusSymbol: stampStatusSymbol,
-            currentStreak: currentStreak,
+            currentStreak: hasEventEnded ? 0 : currentStreak,
             darkForest: darkForest,
             locationPermissionWarningText: locationPermissionWarningText,
             isInAllowedRegion: locationController.isInAllowedRegion,
@@ -24,12 +24,20 @@ extension ContentView {
             distanceText: locationController.distanceToRegionText,
             directionAngle: locationController.directionAngle,
             currentAdBanner: currentAdBanner,
+            shouldShowRaffleCallout: hasEventEnded && isRaffleParticipationOpen && !hasJoinedRaffle,
+            raffleCalloutText: raffleCalloutText,
             isShowingMapsPrompt: $isShowingMapsPrompt,
             onClaimTap: {
                 triggerSuccessHaptic()
                 claimBadge()
             },
-            onOpenMaps: openMapsToRegion
+            onOpenMaps: openMapsToRegion,
+            onRaffleTap: {
+                selectedTab = .mehr
+                DispatchQueue.main.async {
+                    settingsRoute = .raffle
+                }
+            }
         )
         .onAppear {
             refreshMorningOutsideBannerVariant()
@@ -88,7 +96,9 @@ extension ContentView {
                     badge: badge,
                     title: badge.overlayTitle,
                     buttonTitle: "Schließen",
-                    switchesToBadgeTab: false
+                    switchesToBadgeTab: false,
+                    subtitleOverride: nil,
+                    messageOverride: nil
                 )
             },
             onShareTap: {
@@ -152,7 +162,14 @@ extension ContentView {
                         }
                         .tint(.primary)
 
-                        ShareLink(item: URL(string: "https://derbergschein.de")!) {
+                        Button {
+                            openURL(URL(string: "https://apps.apple.com/us/app/der-bergschein-mach-ihn-voll/id6760939607?action=write-review")!)
+                        } label: {
+                            Label("Bewerten", systemImage: "star")
+                        }
+                        .tint(.primary)
+
+                        ShareLink(item: URL(string: "https://apps.apple.com/us/app/der-bergschein-mach-ihn-voll/id6760939607")!) {
                             Label("Teilen", systemImage: "square.and.arrow.up")
                         }
                         .tint(.primary)
@@ -160,10 +177,10 @@ extension ContentView {
 
                     Section("Sonstiges") {
                         Button {
-                            settingsRoute = .changeLog
+                            settingsRoute = .raffle
                         } label: {
                             HStack {
-                                Label("Change Log", systemImage: "list.bullet.clipboard")
+                                Label("Verlosung", systemImage: "ticket")
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .font(.footnote.weight(.semibold))
@@ -171,12 +188,12 @@ extension ContentView {
                             }
                         }
                         .tint(.primary)
-
+                        
                         Button {
-                            settingsRoute = .raffle
+                            settingsRoute = .changeLog
                         } label: {
                             HStack {
-                                Label("Verlosung", systemImage: "ticket")
+                                Label("Changelog", systemImage: "list.bullet.clipboard")
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .font(.footnote.weight(.semibold))
@@ -335,13 +352,374 @@ extension ContentView {
     }
 
     var raffleView: some View {
+        return ZStack {
+            appBackgroundGradient
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Teilnahme")
+                            .font(.title3.weight(.black))
+                            .foregroundStyle(darkForest)
+                        VStack(alignment: .leading, spacing: 14) {
+                            if hasJoinedRaffle {
+                                Text("Deine Teilnahme wurde bestätigt.")
+                                    .font(.headline)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                            if !raffleConsentTimestamp.isEmpty {
+                                Text("Teilnahme am: \(raffleConsentTimestamp)")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            } else if isRaffleParticipationOpen {
+                                Text("Du kannst jetzt an der Verlosung teilnehmen.")
+                                    .font(.headline)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                Text("Teilnahmeschluss: \(raffleParticipationDeadlineLabel) Uhr")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                Text("Die Gewinne werden unter den Teilnehmenden mit den meisten Stempeln verlost. Es gelten die Teilnahmebedingungen.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                Button("An der Verlosung teilnehmen") {
+                                    raffleEntryEmail = raffleContactEmail
+                                    raffleEntryName = raffleContactName
+                                    raffleEntryAcceptedTerms = false
+                                    raffleEntryIsAdult = false
+                                    raffleEntryAcceptedContact = false
+                                    raffleEntrySubmitErrorMessage = nil
+                                    isRaffleEntrySheetPresented = true
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.large)
+                            } else {
+                                Text("Die Teilnahmefrist ist abgelaufen.")
+                                    .font(.headline)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                Text("Teilnahmeschluss war am \(raffleParticipationDeadlineLabel) Uhr.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Divider()
+                                .overlay(Color.accentColor.opacity(0.22))
+
+                            NavigationLink {
+                                raffleTermsView
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "doc.text")
+                                    Text("Teilnahmebedingungen anzeigen")
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.footnote.weight(.bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .padding(.vertical, 2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color(.systemBackground).opacity(0.72))
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Preise")
+                            .font(.title3.weight(.black))
+                            .foregroundStyle(darkForest)
+
+                        VStack(alignment: .leading, spacing: 14) {
+                            ForEach(rafflePrizeItems) { prize in
+                                ZStack(alignment: .topTrailing) {
+                                    HStack(alignment: .top, spacing: 12) {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .fill(Color.accentColor.opacity(0.12))
+                                            if let prizeImageName = prize.prizeImageName {
+                                                Image(prizeImageName)
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .padding(4)
+                                            } else {
+                                                Text(prize.prizeSymbol)
+                                                    .font(.system(size: 34))
+                                            }
+                                        }
+                                        .frame(width: 80, height: 80)
+
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(prize.title)
+                                                .font(.headline)
+                                                .foregroundStyle(darkForest)
+
+                                            Text(prize.text)
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                        .padding(.trailing, 52)
+
+                                        Spacer(minLength: 0)
+                                    }
+                                    .padding(12)
+
+                                    Image(prize.sponsorImageName)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 40, height: 40)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        .padding(.top, 10)
+                                        .padding(.trailing, 10)
+                                }
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color(.systemBackground).opacity(0.72))
+                                )
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 24)
+            }
+        }
+        .navigationTitle("Verlosung")
+        .sheet(isPresented: $isRaffleEntrySheetPresented) {
+            NavigationStack {
+                ZStack {
+                    appBackgroundGradient
+                        .ignoresSafeArea()
+
+                    Form {
+                        Section("Kontakt") {
+                            TextField("E-Mail-Adresse", text: $raffleEntryEmail)
+                                .keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+
+                            TextField("Name (optional)", text: $raffleEntryName)
+                                .textInputAutocapitalization(.words)
+
+                            if !raffleEntryEmail.isEmpty, !isValidRaffleEmail(raffleEntryEmail) {
+                                Text("Bitte gib eine gültige E-Mail-Adresse ein.")
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+
+                    Section("Bestätigung") {
+                            Toggle(isOn: $raffleEntryAcceptedTerms) {
+                                Text(.init("Ich akzeptiere die [**Teilnahmebedingungen**](bergschein://raffle-terms)."))
+                                    .environment(\.openURL, OpenURLAction { url in
+                                        guard url.absoluteString == "bergschein://raffle-terms" else {
+                                            return .systemAction
+                                        }
+                                        isRaffleTermsInSheetPresented = true
+                                        return .handled
+                                    })
+                            }
+                            Toggle("Ich bin mindestens 18 Jahre alt.", isOn: $raffleEntryIsAdult)
+                            Toggle("Ich bin mit Kontaktaufnahme im Gewinnfall per E-Mail einverstanden.", isOn: $raffleEntryAcceptedContact)
+
+                        Text("Mit Teilnahme bestätigst du die Teilnahmebedingungen und dein Mindestalter von 18 Jahren.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if let raffleEntrySubmitErrorMessage {
+                            Text(raffleEntrySubmitErrorMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                }
+                .navigationTitle("Teilnahme")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Abbrechen") {
+                            isRaffleEntrySheetPresented = false
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Teilnehmen") {
+                            submitRaffleEntryFromSheet()
+                        }
+                        .disabled(!canSubmitRaffleEntry || isRaffleEntrySubmitInProgress)
+                    }
+                }
+                .navigationDestination(isPresented: $isRaffleTermsInSheetPresented) {
+                    raffleTermsView
+                }
+            }
+        }
+    }
+
+    var canSubmitRaffleEntry: Bool {
+        isRaffleParticipationOpen &&
+        isValidRaffleEmail(raffleEntryEmail) &&
+        raffleEntryAcceptedTerms &&
+        raffleEntryIsAdult &&
+        raffleEntryAcceptedContact
+    }
+
+    func isValidRaffleEmail(_ email: String) -> Bool {
+        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else {
+            return false
+        }
+        let parts = normalized.split(separator: "@")
+        guard parts.count == 2, !parts[0].isEmpty else {
+            return false
+        }
+        let domainParts = parts[1].split(separator: ".")
+        return domainParts.count >= 2 && domainParts.allSatisfy { !$0.isEmpty }
+    }
+
+    func submitRaffleEntryFromSheet() {
+        guard isRaffleParticipationOpen else {
+            raffleEntrySubmitErrorMessage = "Die Teilnahmefrist ist abgelaufen."
+            return
+        }
+
+        let trimmedEmail = raffleEntryEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = raffleEntryName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        isRaffleEntrySubmitInProgress = true
+        raffleEntrySubmitErrorMessage = nil
+
+        let installID = analyticsInstallID
+        let termsVersion = raffleTermsVersion
+        let badgeCountAtConsent = unlockedBadges.count
+        let challengeCountAtConsent = completedChallengesCount
+        let isPerfectAtConsent = isPerfectSoFar(with: unlockedBadges)
+
+        Task {
+            let success = await analyticsService.submitRaffleEntry(
+                RaffleEntryRequest(
+                    installID: installID,
+                    email: trimmedEmail,
+                    name: trimmedName.isEmpty ? nil : trimmedName,
+                    termsVersion: termsVersion,
+                    contactConsent: raffleEntryAcceptedContact,
+                    ageConfirmed: raffleEntryIsAdult,
+                    badgeCountAtConsent: badgeCountAtConsent,
+                    challengeCountAtConsent: challengeCountAtConsent,
+                    isPerfectSoFar: isPerfectAtConsent
+                )
+            )
+
+            await MainActor.run {
+                isRaffleEntrySubmitInProgress = false
+
+                guard success else {
+                    raffleEntrySubmitErrorMessage = "Teilnahme konnte nicht gespeichert werden. Bitte versuche es erneut."
+                    return
+                }
+
+                raffleContactEmail = trimmedEmail
+                raffleContactName = trimmedName
+                hasJoinedRaffle = true
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "de_DE")
+                formatter.calendar = Calendar.current
+                formatter.dateFormat = "dd.MM.yyyy"
+                raffleConsentTimestamp = formatter.string(from: Date())
+                isRaffleEntrySheetPresented = false
+                triggerSuccessHaptic()
+            }
+        }
+    }
+
+    var raffleParticipationDeadline: Date? {
+        guard let officialEventEndDate else {
+            return nil
+        }
+        return Calendar.current.date(byAdding: .day, value: 7, to: officialEventEndDate)
+    }
+
+    var isRaffleParticipationOpen: Bool {
+        guard let raffleParticipationDeadline else {
+            return false
+        }
+        return currentDate <= raffleParticipationDeadline
+    }
+
+    var raffleParticipationDeadlineLabel: String {
+        guard let raffleParticipationDeadline else {
+            return "8.6. 23:00"
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.calendar = Calendar.current
+        formatter.dateFormat = "dd.MM.yyyy HH:mm"
+        return formatter.string(from: raffleParticipationDeadline)
+    }
+
+    var raffleCalloutText: String {
+        guard raffleParticipationDeadline != nil else {
+            return "Teilnahmefrist beachten."
+        }
+        return "Teilnahme bis \(raffleParticipationDeadlineLabel) Uhr möglich."
+    }
+
+    var rafflePrizeItems: [RafflePrizeItem] {
+        [
+            RafflePrizeItem(
+                prizeSymbol: "",
+                prizeImageName: "zirkelcard",
+                sponsorImageName: "werbung_zirkel",
+                title: "1. Preis",
+                text: "Eine exklusive Zirkel-Card."
+            ),
+            RafflePrizeItem(
+                prizeSymbol: "🎽",
+                prizeImageName: nil,
+                sponsorImageName: "werbung_tb",
+                title: "2. Preis",
+                text: "Ein Trikot mit Unterschriften aller Regionalligaspielerinnen."
+            ),
+            RafflePrizeItem(
+                prizeSymbol: "📱",
+                prizeImageName: nil,
+                sponsorImageName: "werbung_ffwd",
+                title: "3. Preis",
+                text: "Preis 3 sponsored by FFWD Ventures."
+            ),
+        ]
+    }
+
+    var raffleTermsView: some View {
         ScrollView {
             Text(raffleTermsText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
                 .padding(.bottom, 24)
         }
-        .navigationTitle("Verlosung")
+        .navigationTitle("Bedingungen")
     }
 
     var raffleTermsText: String {
@@ -372,7 +750,7 @@ extension ContentView {
 
         3. Teilnahmezeitraum
 
-        Die Teilnahme ist nur im in der App angegebenen Zeitraum möglich.
+        Die Teilnahme an der Verlosung ist vom 02.04.2026, 00:00 Uhr, bis einschließlich 08.06.2026, 23:00 Uhr (MESZ) möglich.
 
         ⸻
 
@@ -393,7 +771,7 @@ extension ContentView {
 
         6. Teilnahmehandlung
 
-        (1) Die Teilnahme an der Verlosung setzt voraus, dass die teilnehmende Person innerhalb der App den Teilnahmebedingungen ausdrücklich zustimmt.
+        (1) Die Teilnahme an der Verlosung setzt voraus, dass die teilnehmende Person innerhalb der App den Teilnahmebedingungen ausdrücklich zustimmt. Die Zustimmung muss innerhalb des in § 3 genannten Teilnahmezeitraums erfolgen.
         (2) Die bloße Nutzung der App oder das Sammeln von Check-ins begründet noch keine Teilnahme an der Verlosung.
         (3) Maßgeblich für die Teilnahme an der Verlosung ist ausschließlich die Einordnung gemäß § 7.
 
@@ -510,12 +888,13 @@ extension ContentView {
             challengeDistanceText: challengeDistanceText(for:),
             challengeDirectionAngle: challengeDirectionAngle(for:),
             unlockedChallengeRewards: unlockedChallengeRewards,
-            isChallengeRewardRedeemed: isChallengeRewardRedeemed,
+            isChallengeRewardRedeemed: isChallengeRewardRedeemed(_:),
+            canRedeemChallengeReward: canRedeemChallengeReward(_:),
             onLocationTap: { challenge in
                 challengeMapsDestination = challenge
             },
             onClaimChallenge: claimActiveChallenge,
-            onRedeemChallengeReward: redeemChallengeReward,
+            onRedeemChallengeReward: redeemChallengeReward(_:),
             challengeMapsAlertIsPresented: challengeMapsAlertBinding,
             onConfirmOpenMaps: {
                 if let challengeMapsDestination {
@@ -551,4 +930,13 @@ extension ContentView {
             }
         )
     }
+}
+
+struct RafflePrizeItem: Identifiable {
+    let id = UUID()
+    let prizeSymbol: String
+    let prizeImageName: String?
+    let sponsorImageName: String
+    let title: String
+    let text: String
 }

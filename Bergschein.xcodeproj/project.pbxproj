@@ -506,17 +506,19 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Bergschein/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Der Bergschein";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Der Standort wird verwendet, um zu prüfen, ob du dich am Berg oder in einer Challenge-Zone befindest, damit du zum Beispiel den Check-in-Button für den Tagesstempel oder eine Challenge nur direkt vor Ort nutzen kannst.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2026.0;
+				MARKETING_VERSION = 2026.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = de.ffwdventures.Bergschein;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -545,17 +547,19 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Bergschein/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Der Bergschein";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Der Standort wird verwendet, um zu prüfen, ob du dich am Berg oder in einer Challenge-Zone befindest, damit du zum Beispiel den Check-in-Button für den Tagesstempel oder eine Challenge nur direkt vor Ort nutzen kannst.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2026.0;
+				MARKETING_VERSION = 2026.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = de.ffwdventures.Bergschein;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

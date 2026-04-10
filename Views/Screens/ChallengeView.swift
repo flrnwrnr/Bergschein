@@ -21,10 +21,11 @@ struct ChallengeView: View {
     let challengeDistanceText: (DailyChallenge) -> String?
     let challengeDirectionAngle: (DailyChallenge) -> Double?
     let unlockedChallengeRewards: [ChallengeReward]
-    let isChallengeRewardRedeemed: Bool
+    let isChallengeRewardRedeemed: (ChallengeReward) -> Bool
+    let canRedeemChallengeReward: (ChallengeReward) -> Bool
     let onLocationTap: (DailyChallenge) -> Void
     let onClaimChallenge: () -> Void
-    let onRedeemChallengeReward: () -> Void
+    let onRedeemChallengeReward: (ChallengeReward) -> Void
     @Binding var challengeMapsAlertIsPresented: Bool
     let onConfirmOpenMaps: () -> Void
     let onDismissOpenMaps: () -> Void
@@ -52,13 +53,13 @@ struct ChallengeView: View {
                                     appBackgroundGradient: appBackgroundGradient,
                                     rewards: unlockedChallengeRewards,
                                     isChallengeRewardRedeemed: isChallengeRewardRedeemed,
+                                    canRedeemChallengeReward: canRedeemChallengeReward,
                                     onRedeemChallengeReward: onRedeemChallengeReward
                                 )
                             } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "gift.fill")
                                     Text("Belohnungen")
-                                    Text("\(completedChallengesCount)/\(totalChallengesCount)")
                                 }
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
@@ -141,11 +142,13 @@ struct ChallengeView: View {
 
 private struct ChallengeRewardsView: View {
     @State private var rewardRedeemAlertIsPresented = false
+    @State private var rewardPendingRedeem: ChallengeReward?
 
     let appBackgroundGradient: LinearGradient
     let rewards: [ChallengeReward]
-    let isChallengeRewardRedeemed: Bool
-    let onRedeemChallengeReward: () -> Void
+    let isChallengeRewardRedeemed: (ChallengeReward) -> Bool
+    let canRedeemChallengeReward: (ChallengeReward) -> Bool
+    let onRedeemChallengeReward: (ChallengeReward) -> Void
 
     var body: some View {
         ScrollView {
@@ -153,8 +156,10 @@ private struct ChallengeRewardsView: View {
                 ForEach(rewards) { reward in
                     ChallengeRewardCardView(
                         reward: reward,
-                        isRedeemed: isChallengeRewardRedeemed,
+                        isRedeemed: isChallengeRewardRedeemed(reward),
+                        canRedeem: canRedeemChallengeReward(reward),
                         onRedeemTap: {
+                            rewardPendingRedeem = reward
                             rewardRedeemAlertIsPresented = true
                         }
                     )
@@ -169,9 +174,18 @@ private struct ChallengeRewardsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .alert("Belohnung einlösen?", isPresented: $rewardRedeemAlertIsPresented) {
             Button("Abbrechen", role: .cancel) { }
-            Button("Einlösen", role: .destructive, action: onRedeemChallengeReward)
+            Button("Einlösen", role: .destructive) {
+                guard let rewardPendingRedeem else {
+                    return
+                }
+                onRedeemChallengeReward(rewardPendingRedeem)
+            }
         } message: {
-            Text("Diese Aktion kann nur einmal durchgeführt werden und sollte von der Getränkeausgabe bestätigt werden.")
+            if let rewardPendingRedeem {
+                Text(rewardPendingRedeem.redemptionHint)
+            } else {
+                Text("Diese Aktion kann nur einmal durchgeführt werden.")
+            }
         }
     }
 }

@@ -116,6 +116,7 @@ struct ChallengeCardView: View {
 struct ChallengeRewardCardView: View {
     let reward: ChallengeReward
     let isRedeemed: Bool
+    let canRedeem: Bool
     let onRedeemTap: () -> Void
 
     var body: some View {
@@ -185,6 +186,7 @@ struct ChallengeRewardCardView: View {
                     .controlSize(.large)
                     .font(.headline.weight(.bold))
                     .frame(maxWidth: .infinity)
+                    .disabled(!canRedeem)
             }
         }
         .padding(20)

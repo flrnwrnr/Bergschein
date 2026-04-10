@@ -15,7 +15,7 @@ extension ContentView {
             VStack(spacing: 24) {
                 TabView(selection: $onboardingSelection) {
                     ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
-                        VStack(spacing: 24) {
+                        VStack(spacing: page.showsRafflePrizes ? 16 : 24) {
                             VStack {
                                 Image("AppIconPreview")
                                     .resizable()
@@ -26,30 +26,81 @@ extension ContentView {
                             }
                             .frame(height: 96, alignment: .top)
 
-                            Spacer()
+                            if !page.showsRafflePrizes {
+                                Spacer()
+                            }
 
                             if page.usesEmojiIcon {
                                 Text(page.icon)
-                                    .font(.system(size: 88))
+                                    .font(.system(size: page.showsRafflePrizes ? 68 : 88))
                             } else {
                                 Image(systemName: page.icon)
-                                    .font(.system(size: 68, weight: .bold))
+                                    .font(.system(size: page.showsRafflePrizes ? 52 : 68, weight: .bold))
                                     .foregroundStyle(Color.accentColor)
                             }
 
                             Text(page.title)
-                                .font(.custom(BrandFont.primaryName, size: 34))
+                                .font(.custom(BrandFont.primaryName, size: page.showsRafflePrizes ? 30 : 34))
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(darkForest)
                                 .lineLimit(3)
                                 .fixedSize(horizontal: false, vertical: true)
 
                             Text(page.text)
-                                .font(.title3)
+                                .font(page.showsRafflePrizes ? .body : .title3)
                                 .fontDesign(.rounded)
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 24)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if page.showsRafflePrizes {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(rafflePrizeItems) { prize in
+                                        HStack(spacing: 10) {
+                                            ZStack {
+                                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                    .fill(Color.accentColor.opacity(0.12))
+                                                if let prizeImageName = prize.prizeImageName {
+                                                    Image(prizeImageName)
+                                                        .resizable()
+                                                        .scaledToFit()
+                                                        .padding(1)
+                                                } else {
+                                                    Text(prize.prizeSymbol)
+                                                        .font(.title3)
+                                                }
+                                            }
+                                            .frame(width: 34, height: 34)
+
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(prize.title)
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundStyle(darkForest)
+                                                Text(prize.text)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                                    .lineLimit(2)
+                                            }
+
+                                            Spacer(minLength: 0)
+
+                                            Image(prize.sponsorImageName)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 28, height: 28)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .fill(Color(.systemBackground).opacity(0.65))
+                                        )
+                                    }
+                                }
+                                .padding(.horizontal, 18)
+                            }
 
                             if page.requiresLocationAuthorization {
                                 Button {
@@ -66,7 +117,9 @@ extension ContentView {
                                 .disabled(locationController.hasLocationAccess)
                             }
 
-                            Spacer()
+                            if !page.showsRafflePrizes {
+                                Spacer()
+                            }
                         }
                         .padding(24)
                         .tag(index)
@@ -125,20 +178,16 @@ extension ContentView {
                 text: "Hol dir für jeden Tag deinen Stempel am Berg ab und mach den großen Bergschein."
             ),
             OnboardingPage(
-                icon: "location.fill",
+                icon: "🧭",
                 title: "Standort-\nzugriff",
                 text: "Die App prüft deinen Standort, da der Check-in nur direkt am Berg möglich ist.",
                 requiresLocationAuthorization: true
             ),
             OnboardingPage(
-                icon: "checkmark.shield.fill",
-                title: "Einfach und kostenlos",
-                text: "Die App ist kostenlos, benötigt keinen Account und speichert keine persönlichen Daten. Was will man mehr?"
-            ),
-            OnboardingPage(
-                icon: "gift.fill",
+                icon: "🎁",
                 title: "Verlosung",
-                text: "Mit jedem gesammelten Stempel sicherst du dir die Chance auf Preise bei unserer Verlosung. Viel Erfolg!"
+                text: "Mit jedem gesammelten Stempel sicherst du dir die Chance auf Preise bei unserer Verlosung. Viel Erfolg!",
+                showsRafflePrizes: true
             )
         ]
     }

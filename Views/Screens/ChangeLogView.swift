@@ -11,7 +11,7 @@ struct ChangeLogView: View {
     private let entries = [
         ChangeLogEntry(version: "2026.0.1", date: "02.04.2026", sections: [
             ChangeLogSection(title: "Neu", color: .green, items: [
-                "Challenges verbesser"
+                "Challenges verbessert"
             ])
         ]),
         ChangeLogEntry(version: "2026.0", date: "20.03.2026", sections: [
@@ -36,7 +36,7 @@ struct ChangeLogView: View {
             }
             .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Change Log")
+        .navigationTitle("Changelog")
     }
 }
 
