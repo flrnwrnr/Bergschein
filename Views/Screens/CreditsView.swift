@@ -17,15 +17,18 @@ struct CreditsView: View {
             List {
                 Section {
                     VStack(spacing: 12) {
-                        Image("ffwd_logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 88, height: 88)
-                            .padding(10)
-                            .background(Color.primary.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
-                            .onTapGesture(perform: onLogoTap)
+                        Button(action: onLogoTap) {
+                            Image("ffwd_logo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 88, height: 88)
+                                .padding(10)
+                                .background(Color.primary.opacity(0.06))
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("FFWD Ventures Logo")
 
                         Text("FFWD Ventures")
                             .font(.headline)

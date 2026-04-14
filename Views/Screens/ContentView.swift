@@ -37,6 +37,7 @@ struct ContentView: View {
         case ffwd
         case ching
         case tb
+        case fresh
     }
 
     enum AdSlotOverride: String, CaseIterable, Identifiable {

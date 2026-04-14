@@ -2,6 +2,14 @@ import MapKit
 import SwiftUI
 
 extension ContentView {
+    private static let raffleDeadlineFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.calendar = Calendar.current
+        formatter.dateFormat = "dd.MM.yyyy HH:mm"
+        return formatter
+    }()
+
     var locationTab: some View {
         CheckInView(
             appBackgroundGradient: appBackgroundGradient,
@@ -672,11 +680,7 @@ extension ContentView {
             return "8.6. 23:00"
         }
 
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "de_DE")
-        formatter.calendar = Calendar.current
-        formatter.dateFormat = "dd.MM.yyyy HH:mm"
-        return formatter.string(from: raffleParticipationDeadline)
+        return Self.raffleDeadlineFormatter.string(from: raffleParticipationDeadline)
     }
 
     var raffleCalloutText: String {
@@ -689,25 +693,28 @@ extension ContentView {
     var rafflePrizeItems: [RafflePrizeItem] {
         [
             RafflePrizeItem(
+                id: "raffle-1",
                 prizeSymbol: "",
                 prizeImageName: "zirkelcard",
                 sponsorImageName: "werbung_zirkel",
                 title: "1. Preis",
-                text: "Eine exklusive Zirkel-Card."
+                text: "Eine exklusive Zirkel-Card für kostenlosen Eintritt"
             ),
             RafflePrizeItem(
-                prizeSymbol: "🎽",
-                prizeImageName: nil,
+                id: "raffle-2",
+                prizeSymbol: "",
+                prizeImageName: "trikot",
                 sponsorImageName: "werbung_tb",
                 title: "2. Preis",
                 text: "Ein Trikot mit Unterschriften aller Regionalligaspielerinnen."
             ),
             RafflePrizeItem(
-                prizeSymbol: "📱",
-                prizeImageName: nil,
-                sponsorImageName: "werbung_ffwd",
+                id: "raffle-3",
+                prizeSymbol: "",
+                prizeImageName: "doener",
+                sponsorImageName: "werbung_fresh",
                 title: "3. Preis",
-                text: "Preis 3 sponsored by FFWD Ventures."
+                text: "20€ Gutschein bei Eat fresh & tasty"
             ),
         ]
     }
@@ -743,8 +750,12 @@ extension ContentView {
         2. Gegenstand der Verlosung
 
         (1) Der Veranstalter führt eine unentgeltliche Verlosung innerhalb der App „Der Bergschein“ durch.
-        (2) Verlost werden die in der App konkret benannten Preise.
-        (3) Die Verlosung dient ausschließlich der App-Aktivierung und ist kein Glücksspiel mit Entgelt.
+        (2) Verlost werden folgende Preise:
+            • 1. Preis: Eine exklusive Zirkel-Card.
+            • 2. Preis: Ein Trikot mit Unterschriften aller Regionalligaspielerinnen.
+            • 3. Preis: Ein 20€ Gutschein bei Eat fresh & tasty, dem ersten Gemüse Kebap in Erlangen.
+        (3) Eine Barauszahlung oder ein Umtausch der Gewinne ist ausgeschlossen.
+        (4) Die Verlosung dient ausschließlich der App-Aktivierung und ist kein Glücksspiel mit Entgelt.
 
         ⸻
 
@@ -933,7 +944,7 @@ extension ContentView {
 }
 
 struct RafflePrizeItem: Identifiable {
-    let id = UUID()
+    let id: String
     let prizeSymbol: String
     let prizeImageName: String?
     let sponsorImageName: String

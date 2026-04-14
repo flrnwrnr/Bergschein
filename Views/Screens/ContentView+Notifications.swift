@@ -120,6 +120,9 @@ extension ContentView {
                 try await center.add(request)
             }
         } catch {
+            #if DEBUG
+            print("Notification scheduling failed: \(error)")
+            #endif
         }
     }
 

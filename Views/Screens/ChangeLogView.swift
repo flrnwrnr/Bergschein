@@ -41,17 +41,21 @@ struct ChangeLogView: View {
 }
 
 private struct ChangeLogEntry: Identifiable {
-    let id = UUID()
     let version: String
     let date: String
     let sections: [ChangeLogSection]
+
+    var id: String { version }
 }
 
 private struct ChangeLogSection: Identifiable {
-    let id = UUID()
     let title: String
     let color: Color
     let items: [String]
+
+    var id: String {
+        "\(title)-\(items.joined(separator: "|"))"
+    }
 }
 
 private struct ChangeLogEntryRow: View {

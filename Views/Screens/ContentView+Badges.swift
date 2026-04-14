@@ -1,6 +1,14 @@
 import SwiftUI
 
 extension ContentView {
+    private static let dayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
     var canClaimToday: Bool {
         !hasEventEnded &&
         hasOfficialOpeningStarted &&
@@ -157,7 +165,7 @@ extension ContentView {
             return defaultEventStartDate
         }
 
-        return dayFormatter.date(from: testEventStartDay) ?? defaultEventStartDate
+        return Self.dayFormatter.date(from: testEventStartDay) ?? defaultEventStartDate
     }
 
     var officialOpeningDate: Date? {
@@ -236,19 +244,11 @@ extension ContentView {
         return currentBadge?.name ?? "Kein Stempeltag"
     }
 
-    var dayFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.locale = Locale(identifier: "de_DE")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }
-
     func ensureTestEventStartDay() {
         guard testEventStartDay.isEmpty else {
             return
         }
-        testEventStartDay = dayFormatter.string(from: defaultEventStartDate ?? Calendar.current.startOfDay(for: Date()))
+        testEventStartDay = Self.dayFormatter.string(from: defaultEventStartDate ?? Calendar.current.startOfDay(for: Date()))
     }
 
     func claimBadge() {

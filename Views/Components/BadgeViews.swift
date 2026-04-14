@@ -24,12 +24,14 @@ struct BadgeCardView: View {
     }
 
     var body: some View {
-        cardContent
-            .contentShape(Rectangle())
-            .onTapGesture {
+        Button {
                 guard isUnlocked else { return }
                 onTap()
+            } label: {
+                cardContent
             }
+            .buttonStyle(.plain)
+            .disabled(!isUnlocked)
             .frame(maxWidth: .infinity)
             .frame(height: isFeatured ? 188 : 150)
     }

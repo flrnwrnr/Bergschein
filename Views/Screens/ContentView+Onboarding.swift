@@ -186,7 +186,7 @@ extension ContentView {
             OnboardingPage(
                 icon: "🎁",
                 title: "Verlosung",
-                text: "Mit jedem gesammelten Stempel sicherst du dir die Chance auf Preise bei unserer Verlosung. Viel Erfolg!",
+                text: "Nimm unter 'Mehr' an der Verlosung teil. Verlost werden drei Preise per Los gemäß Teilnahmebedingungen. Viel Erfolg!",
                 showsRafflePrizes: true
             )
         ]

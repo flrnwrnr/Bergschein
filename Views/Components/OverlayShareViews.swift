@@ -89,6 +89,8 @@ struct BadgeOverlayView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Badge teilen")
+                .accessibilityHint("Öffnet das Teilen-Menü")
                 .padding(18)
             }
             .frame(maxWidth: 340)

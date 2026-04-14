@@ -314,4 +314,11 @@ struct AdBanner {
         text: "Vom Bergkeller ab in deinen Lieblingskeller! Worauf wartest du?",
         url: URL(string: "https://zirkel-club.de")!
     )
+
+    static let fresh = AdBanner(
+        imageName: "werbung_fresh",
+        title: "Eat fresh & tasty",
+        text: "Komm jetzt vorbei und hol dir Erlangens ersten Gemüse Kebap!",
+        url: URL(string: "https://www.facebook.com/Eat-fresh-tasty-1993766833975372/")!
+    )
 }
