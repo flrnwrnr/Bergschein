@@ -17,8 +17,6 @@ extension ContentView {
                 return .ching
             case .tb:
                 return .tb
-            case .fresh:
-                return .ffwd
             }
         case (false, _, .afternoon):
             switch morningOutsideBannerVariant {
@@ -28,8 +26,6 @@ extension ContentView {
                 return .ching
             case .tb:
                 return .tb
-            case .fresh:
-                return .fresh
             }
         case (false, _, .overnight):
             return .zirkel
@@ -83,26 +79,13 @@ extension ContentView {
         }
 
         let randomValue = Int.random(in: 1...10)
-        if currentAdSlot == .morning {
-            switch randomValue {
-            case 1...4:
-                morningOutsideBannerVariant = .ffwd
-            case 5...8:
-                morningOutsideBannerVariant = .ching
-            default:
-                morningOutsideBannerVariant = .tb
-            }
-        } else {
-            switch randomValue {
-            case 1...3:
-                morningOutsideBannerVariant = .ffwd
-            case 4...6:
-                morningOutsideBannerVariant = .ching
-            case 7...8:
-                morningOutsideBannerVariant = .tb
-            default:
-                morningOutsideBannerVariant = .fresh
-            }
+        switch randomValue {
+        case 1...4:
+            morningOutsideBannerVariant = .ffwd
+        case 5...8:
+            morningOutsideBannerVariant = .ching
+        default:
+            morningOutsideBannerVariant = .tb
         }
     }
 

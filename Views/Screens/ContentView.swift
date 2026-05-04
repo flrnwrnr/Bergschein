@@ -37,7 +37,6 @@ struct ContentView: View {
         case ffwd
         case ching
         case tb
-        case fresh
     }
 
     enum AdSlotOverride: String, CaseIterable, Identifiable {
@@ -86,6 +85,7 @@ struct ContentView: View {
     @State var activeBadgeOverlay: BadgeOverlayPresentation?
     @State var activeChallengeRewardOverlay: ChallengeRewardOverlayPresentation?
     @State var activeMissedDayAlert: MissedDayAlertPresentation?
+    @State var activeLocationAccessRequiredOverlay: LocationAccessRequiredOverlayPresentation?
     @State var activeBadgeShareSheet: BadgeShareSheetItem?
     @State var currentDate = Date()
     @State var useSimulatedDate = false
@@ -164,7 +164,11 @@ struct ContentView: View {
         .onChange(of: hasSeenOnboarding) { _, hasSeenOnboarding in
             if hasSeenOnboarding {
                 refreshScheduledNotifications()
+                updateLocationAccessRequiredOverlayState()
             }
+        }
+        .onChange(of: locationController.authorizationStatus) { _, _ in
+            updateLocationAccessRequiredOverlayState()
         }
         .onChange(of: unlockedBadgeIdentifiers) { _, _ in
             refreshScheduledNotifications()
@@ -224,6 +228,12 @@ struct ContentView: View {
                         }
                     }
                 )
+            } else if let activeLocationAccessRequiredOverlay {
+                LocationAccessRequiredOverlayView(
+                    presentation: activeLocationAccessRequiredOverlay,
+                    darkForest: darkForest,
+                    onOpenSettings: openAppSettings
+                )
             } else if let activeChallengeRewardOverlay {
                 ChallengeRewardOverlayView(
                     presentation: activeChallengeRewardOverlay,
@@ -257,10 +267,28 @@ struct ContentView: View {
             refreshNotificationAuthorizationState()
             applyPendingNotificationDestinationIfNeeded()
             refreshScheduledNotifications()
+            updateLocationAccessRequiredOverlayState()
             Task {
                 await analyticsService.flushPendingEvents()
             }
         }
+    }
+
+    private func updateLocationAccessRequiredOverlayState() {
+        guard hasSeenOnboarding else {
+            activeLocationAccessRequiredOverlay = nil
+            return
+        }
+
+        guard !locationController.hasLocationAccess else {
+            activeLocationAccessRequiredOverlay = nil
+            return
+        }
+
+        activeLocationAccessRequiredOverlay = LocationAccessRequiredOverlayPresentation(
+            title: "Standortzugriff\nerforderlich",
+            message: "Für den Check-in muss der Standortzugriff aktiv sein. Bitte aktiviere den Zugriff in den Systemeinstellungen oder prüfe die Berechtigung erneut."
+        )
     }
 }
 

@@ -4,6 +4,13 @@ import SwiftUI
 import UIKit
 
 extension ContentView {
+    func openAppSettings() {
+        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else {
+            return
+        }
+        openURL(settingsURL)
+    }
+
     func openMapsToRegion() {
         let coordinate = locationController.activePolygonCenter
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)

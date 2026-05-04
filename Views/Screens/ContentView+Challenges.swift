@@ -191,7 +191,7 @@ extension ContentView {
             )
         }
 
-        if activeChallenge.id == "2026-05-23" && !tbDrinkRewardUnlocked {
+        if activeChallenge.id == "2026-05-25" && !tbDrinkRewardUnlocked {
             tbDrinkRewardUnlocked = true
             tbDrinkRewardRedeemed = false
             withAnimation(overlayPresentationAnimation) {
@@ -207,7 +207,7 @@ extension ContentView {
             }
         }
 
-        if activeChallenge.id == "2026-05-26" && !bibOfferRewardUnlocked {
+        if activeChallenge.id == "2026-05-29" && !bibOfferRewardUnlocked {
             bibOfferRewardUnlocked = true
             bibOfferRewardRedeemed = false
             withAnimation(overlayPresentationAnimation) {

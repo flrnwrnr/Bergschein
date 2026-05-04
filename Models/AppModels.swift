@@ -83,6 +83,11 @@ struct MissedDayAlertPresentation {
     let missedBadge: BadgeDefinition
 }
 
+struct LocationAccessRequiredOverlayPresentation {
+    let title: String
+    let message: String
+}
+
 struct ChallengeOverlayPresentation {
     let challenge: DailyChallenge
 }
@@ -224,6 +229,8 @@ struct DailyChallenge: Identifiable {
         case "2026-05-22":
             return "Zirkel bei Nacht sitzt. Die zweite Challenge ist dir sicher."
         case "2026-05-23":
+            return "Die Pflichtfahrt im Riesenrad ist geschafft. Starker Bergmoment."
+        case "2026-05-25":
             return "Der Abstecher zum BMS ist geschafft. Challenge erfolgreich abgehakt."
         default:
             return "Diese Tageschallenge hast du erfolgreich abgehakt."
@@ -233,13 +240,13 @@ struct DailyChallenge: Identifiable {
     static let all: [DailyChallenge] = [
         DailyChallenge(id: "2026-05-21", icon: "🥳", title: "Anstich an der T-Kreuzung", text: "Checke zwischen 16:00 und 18:00 Uhr am sogenannten T zum Anstich ein.", locationName: "T-Kreuzung", month: 5, day: 21, year: 2026, startHour: 16, startMinute: 0, endHour: 18, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60756, longitude: 11.00512), radius: 50, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-22", icon: "🪩", title: "Afterberg im Zirkel", text: "Checke am 22.05. zwischen 21:00 und 23:59 Uhr im Zirkel ein und feier im Klassiker.", locationName: "Zirkel", month: 5, day: 22, year: 2026, startHour: 20, startMinute: 0, endHour: 23, endMinute: 59, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60240, longitude: 11.00360), radius: 100, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-23", icon: "🏀", title: "Ballen am BMS", text: "Mach am 23.05. einen Abstecher zum BMS, werfe dort ein paar Körbe, und hake die Challenge direkt vor Ort ab.", locationName: "BMS", month: 5, day: 23, year: 2026, startHour: 10, startMinute: 0, endHour: 18, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60266, longitude: 11.02082), radius: 200, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-23", icon: "🎡", title: "Pflichtfahrt im Riesenrad", text: "Dreh am 23.05. zwischen 10:00 und 23:00 Uhr die Pflichtfahrt im Riesenrad, die zu jedem Berg einfach dazugehört, und hake die Challenge direkt vor Ort ab.", locationName: "Riesenrad", month: 5, day: 23, year: 2026, startHour: 10, startMinute: 0, endHour: 23, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60714, longitude: 11.00681), radius: 100, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-24", icon: "🥨", title: "Frühschoppen am Erich Keller", text: "Mach am 24.05. einen Abstecher zum Frühschoppen am Erich Keller und hake die Challenge direkt vor Ort ab.", locationName: "Erich Keller", month: 5, day: 24, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60771, longitude: 11.00417), radius: 70, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-25", icon: "🎡", title: "Pflichtfahrt im Riesenrad", text: "Dreh am 25.05. zwischen 10:00 und 23:00 Uhr die Pflichtfahrt im Riesenrad, die zu jedem Berg einfach dazugehört, und hake die Challenge direkt vor Ort ab.", locationName: "Riesenrad", month: 5, day: 25, year: 2026, startHour: 10, startMinute: 0, endHour: 23, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60714, longitude: 11.00681), radius: 100, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-26", icon: "📚", title: "Besuch in der Bib", text: "Geh am 26.05. mal wieder in die Unibib, damit du das Lernen nicht ganz vergisst 😉", locationName: "Unibib", month: 5, day: 26, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59661, longitude: 11.00713), radius: 120, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-27", icon: "🌿", title: "Erholsamer Besuch im Aromagarten", text: "Mach am 27.05. einen erholsamen Abstecher in den Aromagarten und hake die Challenge direkt vor Ort ab.", locationName: "Aromagarten", month: 5, day: 27, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60268, longitude: 11.01638), radius: 120, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-25", icon: "🏀", title: "Ballen am BMS", text: "Mach am 25.05. einen Abstecher zum BMS, werfe dort ein paar Körbe, und hake die Challenge direkt vor Ort ab.", locationName: "BMS", month: 5, day: 25, year: 2026, startHour: 10, startMinute: 0, endHour: 18, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60266, longitude: 11.02082), radius: 200, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-26", icon: "🌿", title: "Erholsamer Besuch im Aromagarten", text: "Mach am 26.05. einen erholsamen Abstecher in den Aromagarten und hake die Challenge direkt vor Ort ab.", locationName: "Aromagarten", month: 5, day: 26, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60268, longitude: 11.01638), radius: 120, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-27", icon: "🌳", title: "Besuch im Schlossgarten", text: "Mach am 27.05. einen Besuch in Erlangens Highlight, dem Schlossgarten, und hake die Challenge direkt vor Ort ab.", locationName: "Schlossgarten", month: 5, day: 27, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59801, longitude: 11.00525), radius: 120, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-28", icon: "🏁", title: "Auto-Scooter mit den Kids", text: "Fahr am 28.05. zwischen 10:00 und 23:00 Uhr eine Runde Auto-Scooter mit den Kids und hake die Challenge direkt vor Ort ab.", locationName: "Auto-Scooter", month: 5, day: 28, year: 2026, startHour: 10, startMinute: 0, endHour: 23, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60709, longitude: 11.00758), radius: 100, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-29", icon: "🌳", title: "Besuch im Schlossgarten", text: "Mach am 29.05. einen Besuch in Erlangens Highlight, dem Schlossgarten, und hake die Challenge direkt vor Ort ab.", locationName: "Schlossgarten", month: 5, day: 29, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59801, longitude: 11.00525), radius: 120, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-29", icon: "📚", title: "Besuch in der Bib", text: "Geh am 29.05. mal wieder in die Unibib, damit du das Lernen nicht ganz vergisst 😉", locationName: "Unibib", month: 5, day: 29, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59661, longitude: 11.00713), radius: 120, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-30", icon: "⛪️", title: "Check-in am Kirchenplatz", text: "Hol dir am 30.05. am Kirchenplatz kurz den dringend notwendigen Segen ab und hake die Challenge direkt vor Ort ab.", locationName: "Kirchenplatz", month: 5, day: 30, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60128, longitude: 11.00814), radius: 100, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-31", icon: "🌳", title: "Treffen am Bohlenplatz", text: "Mach am 31.05. einen Abstecher zum Bohlenplatz im Herzen Erlangens und hake die Challenge direkt vor Ort ab.", locationName: "Bohlenplatz", month: 5, day: 31, year: 2026, startHour: 12, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59662, longitude: 11.01111), radius: 100, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-06-01", icon: "👋", title: "Ein letzter Besuch", text: "Komm am 01.06. noch ein letztes Mal hoch und hake die finale Challenge direkt vor Ort ab.", locationName: "T-Kreuzung", month: 6, day: 1, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60756, longitude: 11.00512), radius: 50, requiresLocationCheckIn: true)
@@ -315,10 +322,4 @@ struct AdBanner {
         url: URL(string: "https://zirkel-club.de")!
     )
 
-    static let fresh = AdBanner(
-        imageName: "werbung_fresh",
-        title: "Eat fresh & tasty",
-        text: "Komm jetzt vorbei und hol dir Erlangens ersten Gemüse Kebap!",
-        url: URL(string: "https://www.facebook.com/Eat-fresh-tasty-1993766833975372/")!
-    )
 }

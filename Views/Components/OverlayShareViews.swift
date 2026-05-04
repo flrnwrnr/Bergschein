@@ -712,3 +712,80 @@ struct MissedDayOverlayView: View {
         }
     }
 }
+
+struct LocationAccessRequiredOverlayView: View {
+    let presentation: LocationAccessRequiredOverlayPresentation
+    let darkForest: Color
+    let onOpenSettings: () -> Void
+    @State private var animateIn = false
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+                .opacity(animateIn ? 1 : 0)
+                .transition(.opacity)
+
+            Color.black.opacity(animateIn ? 0.22 : 0)
+                .ignoresSafeArea()
+                .transition(.opacity)
+
+            VStack(spacing: 18) {
+                Image(systemName: "location.slash.fill")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundStyle(Color.appWarningTint)
+
+                Text("Standort-\nzugriff")
+                    .font(.custom(BrandFont.primaryName, size: 28))
+                    .foregroundStyle(darkForest)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(presentation.message)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button("Einstellungen öffnen", action: onOpenSettings)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .tint(Color.appWarningTint)
+                    .foregroundStyle(.white)
+            }
+            .padding(28)
+            .frame(maxWidth: 340)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Color.appCardBackground)
+
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.appCardBackground, Color.appWarningBackground],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .stroke(Color.appSoftStroke, lineWidth: 1)
+            )
+            .shadow(color: Color.appSoftShadow.opacity(animateIn ? 1 : 0.35), radius: 24, y: 12)
+            .padding(24)
+            .scaleEffect(animateIn ? 1 : 0.94)
+            .offset(y: animateIn ? 0 : 18)
+            .opacity(animateIn ? 1 : 0)
+            .transition(overlayCardTransition)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                animateIn = true
+            }
+        }
+    }
+}

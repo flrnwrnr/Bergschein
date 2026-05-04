@@ -1,3 +1,4 @@
+import CoreLocation
 import SwiftUI
 
 extension ContentView {
@@ -46,7 +47,12 @@ extension ContentView {
                                 .lineLimit(3)
                                 .fixedSize(horizontal: false, vertical: true)
 
-                            Text(page.text)
+                            Text(
+                                page.requiresLocationAuthorization &&
+                                (locationController.authorizationStatus == .denied || locationController.authorizationStatus == .restricted)
+                                ? "Ohne Standortzugriff kann der Check-in am Berg nicht verifiziert werden. Bitte aktiviere den Standortzugriff in den Systemeinstellungen, um fortzufahren."
+                                : page.text
+                            )
                                 .font(page.showsRafflePrizes ? .body : .title3)
                                 .fontDesign(.rounded)
                                 .multilineTextAlignment(.center)
@@ -107,13 +113,18 @@ extension ContentView {
                                     locationController.requestAccessForOnboarding()
                                 } label: {
                                     Label(
-                                        locationController.hasLocationAccess ? "Standort verwendet" : "Weiter",
-                                        systemImage: locationController.hasLocationAccess ? "checkmark" : "location.fill"
+                                        locationController.hasLocationAccess
+                                            ? "Standort verwendet"
+                                            : ((locationController.authorizationStatus == .denied || locationController.authorizationStatus == .restricted) ? "Verweigert" : "Weiter"),
+                                        systemImage: locationController.hasLocationAccess
+                                            ? "checkmark"
+                                            : ((locationController.authorizationStatus == .denied || locationController.authorizationStatus == .restricted) ? "xmark.circle.fill" : "location.fill")
                                     )
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .controlSize(.large)
                                 .font(.headline.weight(.bold))
+                                .tint((locationController.authorizationStatus == .denied || locationController.authorizationStatus == .restricted) ? .red : .accentColor)
                                 .disabled(locationController.hasLocationAccess)
                             }
 
