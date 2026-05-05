@@ -61,7 +61,7 @@ struct ContentView: View {
 
     @StateObject var locationController = LocationController()
     @StateObject var tipJarStore = TipJarStore()
-    @AppStorage("analyticsInstallID") var analyticsInstallID = UUID().uuidString
+    @AppStorage("analyticsInstallID") var analyticsInstallID = ""
     @AppStorage("unlockedBadgeIdentifiers") var unlockedBadgeIdentifiers = ""
     @AppStorage("completedChallengeIdentifiers") var completedChallengeIdentifiers = ""
     @AppStorage("tbDrinkRewardUnlocked") var tbDrinkRewardUnlocked = false
@@ -79,6 +79,7 @@ struct ContentView: View {
     @AppStorage("hapticsEnabled") var hapticsEnabled = true
     @AppStorage("hasSeenOnboarding") var hasSeenOnboarding = false
     @AppStorage("isDebugMenuUnlocked") var isDebugMenuUnlocked = false
+    @AppStorage("simulatedTimeMinutes") var simulatedTimeMinutes = -1
     @AppStorage("notificationsEnabled") var notificationsEnabled = true
     @AppStorage("stampNotificationsEnabled") var stampNotificationsEnabled = true
     @AppStorage("challengeNotificationsEnabled") var challengeNotificationsEnabled = true
@@ -94,6 +95,7 @@ struct ContentView: View {
     @State var settingsRoute: SettingsRoute?
     @State var isShowingMapsPrompt = false
     @State var challengeMapsDestination: DailyChallenge?
+    @State var isCommunitySheetPresented = false
     @State var notificationsAreSystemAuthorized = true
     @State var onboardingSelection = 0
     @State var morningOutsideBannerVariant: MorningOutsideBannerVariant = .ffwd
@@ -263,7 +265,15 @@ struct ContentView: View {
         .sheet(item: $activeBadgeShareSheet) { shareItem in
             ActivityShareSheet(activityItems: [shareItem.image])
         }
+        .sheet(isPresented: $isCommunitySheetPresented) {
+            CommunityView(
+                appBackgroundGradient: appBackgroundGradient,
+                analyticsService: analyticsService,
+                ownCheckins: unlockedBadges.count
+            )
+        }
         .onAppear {
+            ensureAnalyticsInstallID()
             refreshNotificationAuthorizationState()
             applyPendingNotificationDestinationIfNeeded()
             refreshScheduledNotifications()
@@ -289,6 +299,12 @@ struct ContentView: View {
             title: "Standortzugriff\nerforderlich",
             message: "Für den Check-in muss der Standortzugriff aktiv sein. Bitte aktiviere den Zugriff in den Systemeinstellungen oder prüfe die Berechtigung erneut."
         )
+    }
+
+    private func ensureAnalyticsInstallID() {
+        if analyticsInstallID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            analyticsInstallID = UUID().uuidString
+        }
     }
 }
 

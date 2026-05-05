@@ -47,6 +47,7 @@
 		A65A44F52F72FA62000B2A35 /* ContentView+Challenges.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44F42F72FA62000B2A35 /* ContentView+Challenges.swift */; };
 		A65A44F72F72FA62000B2A35 /* ContentView+Badges.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44F62F72FA62000B2A35 /* ContentView+Badges.swift */; };
 		A65A44F92F72FA62000B2A35 /* ContentView+Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44F82F72FA62000B2A35 /* ContentView+Notifications.swift */; };
+		A6B5C74B2FAA104F00194871 /* CommunityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B5C74A2FAA104F00194871 /* CommunityView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -91,6 +92,7 @@
 		A65A44F62F72FA62000B2A35 /* ContentView+Badges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Badges.swift"; sourceTree = "<group>"; };
 		A65A44F82F72FA62000B2A35 /* ContentView+Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Notifications.swift"; sourceTree = "<group>"; };
 		A69F0BD22F6D5A9800D2C755 /* Bergschein.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bergschein.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6B5C74A2FAA104F00194871 /* CommunityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -208,6 +210,7 @@
 				A65A44F42F72FA62000B2A35 /* ContentView+Challenges.swift */,
 				A65A44F62F72FA62000B2A35 /* ContentView+Badges.swift */,
 				A65A44F82F72FA62000B2A35 /* ContentView+Notifications.swift */,
+				A6B5C74A2FAA104F00194871 /* CommunityView.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -347,6 +350,7 @@
 				A65A44CC2F72F1C7000B2A35 /* BadgeViews.swift in Sources */,
 				A65A44E92F72F9C5000B2A35 /* ContentView+Tabs.swift in Sources */,
 				A65A44CD2F72F1C7000B2A35 /* ChallengeViews.swift in Sources */,
+				A6B5C74B2FAA104F00194871 /* CommunityView.swift in Sources */,
 				A65A44F52F72FA62000B2A35 /* ContentView+Challenges.swift in Sources */,
 				A65A44F92F72FA62000B2A35 /* ContentView+Notifications.swift in Sources */,
 				A65A44F72F72FA62000B2A35 /* ContentView+Badges.swift in Sources */,
@@ -518,7 +522,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2026.1.1;
+				MARKETING_VERSION = 2026.2;
 				PRODUCT_BUNDLE_IDENTIFIER = de.ffwdventures.Bergschein;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -559,7 +563,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2026.1.1;
+				MARKETING_VERSION = 2026.2;
 				PRODUCT_BUNDLE_IDENTIFIER = de.ffwdventures.Bergschein;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

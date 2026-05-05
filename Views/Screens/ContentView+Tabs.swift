@@ -37,7 +37,9 @@ extension ContentView {
             isShowingMapsPrompt: $isShowingMapsPrompt,
             onClaimTap: {
                 triggerSuccessHaptic()
-                claimBadge()
+                Task {
+                    await claimBadge()
+                }
             },
             onOpenMaps: openMapsToRegion,
             onRaffleTap: {
@@ -45,6 +47,9 @@ extension ContentView {
                 DispatchQueue.main.async {
                     settingsRoute = .raffle
                 }
+            },
+            onCommunityTap: {
+                isCommunitySheetPresented = true
             }
         )
         .onAppear {
@@ -62,7 +67,7 @@ extension ContentView {
         }
         .onReceive(clock) { date in
             if useSimulatedDate {
-                currentDate = simulatedDate(for: currentDate, usingTimeFrom: date)
+                currentDate = simulatedDate(for: currentDate, usingTimeFrom: simulatedTimeSource(from: date))
             } else {
                 currentDate = date
             }
@@ -166,7 +171,13 @@ extension ContentView {
                         Button {
                             settingsRoute = .tips
                         } label: {
-                            Label("Trinkgeld", systemImage: "heart")
+                            HStack {
+                                Label("Trinkgeld", systemImage: "heart")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                         .tint(.primary)
 
@@ -264,6 +275,39 @@ extension ContentView {
                                 goToNextDay()
                             } label: {
                                 Label("Zum nächsten Tag", systemImage: "forward.fill")
+                            }
+
+                            DatePicker(
+                                "Test-Uhrzeit",
+                                selection: Binding(
+                                    get: { simulatedTimePickerDate },
+                                    set: { setSimulatedTime(from: $0) }
+                                ),
+                                displayedComponents: [.hourAndMinute]
+                            )
+
+                            LabeledContent {
+                                Text(simulatedTimeDisplayText)
+                            } label: {
+                                Label("Aktive Uhrzeit", systemImage: "clock")
+                            }
+
+                            HStack(spacing: 10) {
+                                Button {
+                                    triggerSelectionHaptic()
+                                    if let anstichTime = Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date()) {
+                                        setSimulatedTime(from: anstichTime)
+                                    }
+                                } label: {
+                                    Label("Anstich (17:00)", systemImage: "flag")
+                                }
+
+                                Button {
+                                    triggerSelectionHaptic()
+                                    resetSimulatedTimeToSystem()
+                                } label: {
+                                    Label("Systemzeit", systemImage: "arrow.counterclockwise")
+                                }
                             }
 
                             Button {
@@ -904,7 +948,11 @@ extension ContentView {
             onLocationTap: { challenge in
                 challengeMapsDestination = challenge
             },
-            onClaimChallenge: claimActiveChallenge,
+            onClaimChallenge: {
+                Task {
+                    await claimActiveChallenge()
+                }
+            },
             onRedeemChallengeReward: redeemChallengeReward(_:),
             challengeMapsAlertIsPresented: challengeMapsAlertBinding,
             onConfirmOpenMaps: {

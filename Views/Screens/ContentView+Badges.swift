@@ -251,7 +251,7 @@ extension ContentView {
         testEventStartDay = Self.dayFormatter.string(from: defaultEventStartDate ?? Calendar.current.startOfDay(for: Date()))
     }
 
-    func claimBadge() {
+    func claimBadge() async {
         guard canClaimToday, let currentBadge else {
             return
         }
@@ -265,16 +265,14 @@ extension ContentView {
         let challengeCountAfterEvent = completedChallengesCount
         let installID = analyticsInstallID
         let eventDate = currentDate
-        Task {
-            await analyticsService.track(
-                eventType: .badgeClaimed,
-                installID: installID,
-                eventDate: eventDate,
-                badgeCountAfterEvent: badgeCountAfterEvent,
-                isPerfectSoFar: perfectSoFar,
-                challengeCountAfterEvent: challengeCountAfterEvent
-            )
-        }
+        await analyticsService.track(
+            eventType: .badgeClaimed,
+            installID: installID,
+            eventDate: eventDate,
+            badgeCountAfterEvent: badgeCountAfterEvent,
+            isPerfectSoFar: perfectSoFar,
+            challengeCountAfterEvent: challengeCountAfterEvent
+        )
 
         let hasMissedDay = blockingMissedBadge != nil
         let isFinalDayBadge = currentBadge.id == "06-01"

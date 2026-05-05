@@ -32,6 +32,7 @@ struct CheckInView: View {
     let onClaimTap: () -> Void
     let onOpenMaps: () -> Void
     let onRaffleTap: () -> Void
+    let onCommunityTap: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -172,6 +173,14 @@ struct CheckInView: View {
                 .padding(.top, 24)
             }
             .navigationTitle("Check-in")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: onCommunityTap) {
+                        Image(systemName: "person.3.fill")
+                    }
+                    .accessibilityLabel("Community anzeigen")
+                }
+            }
             .safeAreaInset(edge: .bottom) {
                 AdBannerCard(banner: currentAdBanner, darkForest: darkForest)
                     .padding(.horizontal, 16)

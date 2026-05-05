@@ -1,16 +1,13 @@
 import SwiftUI
 
 struct CommunityView: View {
+    @Environment(\.dismiss) private var dismiss
     let appBackgroundGradient: LinearGradient
     let analyticsService: AnalyticsService
+    let ownCheckins: Int
     @State private var stats: CommunityStats?
     @State private var isLoading = true
     @State private var errorMessage: String?
-
-    private var averageCheckinsText: String {
-        guard let stats else { return "-" }
-        return String(format: "%.1f", stats.averageCheckins)
-    }
 
     var body: some View {
         NavigationStack {
@@ -20,11 +17,6 @@ struct CommunityView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Hier siehst du bald, wie oft die Community insgesamt auf dem Berg eingecheckt hat.")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-
                         if isLoading {
                             HStack(spacing: 10) {
                                 ProgressView()
@@ -61,51 +53,123 @@ struct CommunityView: View {
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .fill(Color(.systemBackground).opacity(0.72))
                             )
-                        } else if let stats, stats.totalCollectors > 0 {
-                            HStack(spacing: 12) {
-                                communityMetricCard(
-                                    title: "Sammler",
-                                    value: "\(stats.totalCollectors)"
+                        } else if let stats {
+                            let rankedDistribution = stats.distribution
+                                .filter { $0.users > 0 }
+                                .sorted { lhs, rhs in
+                                    if lhs.checkins == rhs.checkins {
+                                        return lhs.percentage > rhs.percentage
+                                    }
+                                    return lhs.checkins > rhs.checkins
+                                }
+                            let maxPercentage = rankedDistribution.map(\.percentage).max() ?? 1
+
+                            if rankedDistribution.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Sei ganz vorne dabei!")
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+
+                                    Text("Sobald die ersten Stempel gesammelt sind, siehst du hier, wie oft die Community auf dem Berg war und wie du dich im Vergleich schlägst.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color(.systemBackground).opacity(0.72))
                                 )
-                                communityMetricCard(
-                                    title: "Ø Check-ins",
-                                    value: averageCheckinsText
-                                )
-                                communityMetricCard(
-                                    title: "Bestwert",
-                                    value: "\(stats.maxCheckins)"
-                                )
-                            }
-
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Verteilung")
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-
-                                ForEach(stats.distribution) { bucket in
-                                    HStack {
-                                        Text("\(bucket.checkins)x")
-                                            .font(.subheadline.weight(.semibold))
-                                            .frame(width: 42, alignment: .leading)
-
-                                        Text("\(bucket.users) Nutzer")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-
-                                        Spacer()
-
-                                        Text(String(format: "%.1f%%", bucket.percentage))
-                                            .font(.subheadline.weight(.semibold))
+                            } else {
+                                VStack(alignment: .leading, spacing: 14) {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Text("So schlägst du dich im Vergleich")
+                                            .font(.headline)
                                             .foregroundStyle(.primary)
                                     }
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .fill(Color(.systemBackground).opacity(0.55))
+                                    )
+
+                                    ForEach(Array(rankedDistribution.enumerated()), id: \.element.id) { index, bucket in
+                                        let isOwnBucket = bucket.checkins == ownCheckins
+                                        let rankColor: Color = {
+                                            switch index {
+                                            case 0: return Color(red: 0.78, green: 0.63, blue: 0.20)
+                                            case 1: return Color(red: 0.58, green: 0.62, blue: 0.66)
+                                            case 2: return Color(red: 0.66, green: 0.44, blue: 0.30)
+                                            default: return .accentColor
+                                            }
+                                        }()
+
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack(spacing: 8) {
+                                                Text("#\(index + 1)")
+                                                    .font(.caption.weight(.bold))
+                                                    .foregroundStyle(rankColor)
+                                                    .frame(width: 28, alignment: .leading)
+
+                                                Text("\(bucket.checkins)x eingecheckt")
+                                                    .font(.subheadline.weight(.semibold))
+
+                                                if isOwnBucket {
+                                                    Text("Du")
+                                                        .font(.caption2.weight(.bold))
+                                                        .foregroundStyle(.white)
+                                                        .padding(.horizontal, 7)
+                                                        .padding(.vertical, 3)
+                                                        .background(
+                                                            Capsule(style: .continuous)
+                                                                .fill(Color.accentColor)
+                                                        )
+                                                }
+
+                                                Spacer()
+
+                                                Text(String(format: "%.1f%%", bucket.percentage))
+                                                    .font(.caption.weight(.bold))
+                                                    .foregroundStyle(.primary)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(
+                                                        Capsule(style: .continuous)
+                                                            .fill(Color(.systemBackground).opacity(0.9))
+                                                    )
+                                            }
+
+                                            GeometryReader { geometry in
+                                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                                    .fill(Color.accentColor.opacity(0.2))
+                                                    .overlay(alignment: .leading) {
+                                                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                                            .fill(Color.accentColor)
+                                                            .frame(width: geometry.size.width * CGFloat(max(0, bucket.percentage) / maxPercentage))
+                                                    }
+                                            }
+                                            .frame(height: 10)
+                                        }
+                                        .padding(12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .fill(isOwnBucket ? Color.accentColor.opacity(0.12) : Color(.systemBackground).opacity(0.55))
+                                        )
+                                    }
+
+                                    Text("Die Prozentwerte zeigen, wie viel Prozent der App-Nutzer wie oft auf dem Berg waren.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary.opacity(0.75))
                                 }
+                                .padding(16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color(.systemBackground).opacity(0.72))
+                                )
                             }
-                            .padding(16)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color(.systemBackground).opacity(0.72))
-                            )
                         } else {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Noch keine Community-Daten")
@@ -129,39 +193,42 @@ struct CommunityView: View {
                 }
             }
             .navigationTitle("Community")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Schließen") {
+                        dismiss()
+                    }
+                }
+            }
         }
         .task {
             await loadCommunityStats()
         }
     }
 
-    @ViewBuilder
-    private func communityMetricCard(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title3.weight(.black))
-                .foregroundStyle(.accentColor)
-                .lineLimit(1)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.systemBackground).opacity(0.72))
-        )
-    }
-
     private func loadCommunityStats() async {
+        let hadStatsBeforeReload = (stats != nil)
         isLoading = true
         errorMessage = nil
+
         do {
-            stats = try await analyticsService.fetchCommunityStats()
+            if let fetchedStats = try await analyticsService.fetchCommunityStats() {
+                stats = fetchedStats
+            } else if !hadStatsBeforeReload {
+                stats = nil
+                errorMessage = "Bitte versuche es in ein paar Sekunden erneut."
+            }
+        } catch is CancellationError {
+            // Pull-to-refresh can cancel in-flight work; do not surface this as an error state.
+            isLoading = false
+            return
         } catch {
-            errorMessage = "Bitte versuche es in ein paar Sekunden erneut."
+            if !hadStatsBeforeReload {
+                stats = nil
+                errorMessage = "Bitte versuche es in ein paar Sekunden erneut."
+            }
         }
+
         isLoading = false
     }
 }

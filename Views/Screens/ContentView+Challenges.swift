@@ -165,7 +165,7 @@ extension ContentView {
         return currentDate >= Calendar.current.startOfDay(for: challengeEndDate)
     }
 
-    func claimActiveChallenge() {
+    func claimActiveChallenge() async {
         guard let activeChallenge, canCheckInForActiveChallenge else {
             return
         }
@@ -180,16 +180,14 @@ extension ContentView {
         let challengeCountAfterEvent = updatedChallenges.count
         let installID = analyticsInstallID
         let eventDate = currentDate
-        Task {
-            await analyticsService.track(
-                eventType: .challengeCompleted,
-                installID: installID,
-                eventDate: eventDate,
-                badgeCountAfterEvent: badgeCountAfterEvent,
-                isPerfectSoFar: perfectSoFar,
-                challengeCountAfterEvent: challengeCountAfterEvent
-            )
-        }
+        await analyticsService.track(
+            eventType: .challengeCompleted,
+            installID: installID,
+            eventDate: eventDate,
+            badgeCountAfterEvent: badgeCountAfterEvent,
+            isPerfectSoFar: perfectSoFar,
+            challengeCountAfterEvent: challengeCountAfterEvent
+        )
 
         if activeChallenge.id == "2026-05-25" && !tbDrinkRewardUnlocked {
             tbDrinkRewardUnlocked = true

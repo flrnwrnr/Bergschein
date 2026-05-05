@@ -27,13 +27,32 @@ struct RaffleEntryRequest {
     let isPerfectSoFar: Bool
 }
 
+struct CommunityDistributionEntry: Decodable, Identifiable {
+    let checkins: Int
+    let users: Int
+    let percentage: Double
+
+    var id: Int { checkins }
+}
+
+struct CommunityStats: Decodable {
+    let generatedAt: String
+    let basis: String
+    let totalCollectors: Int
+    let averageCheckins: Double
+    let maxCheckins: Int
+    let distribution: [CommunityDistributionEntry]
+}
+
 actor AnalyticsService {
     private enum Config {
         static let endpointInfoKey = "ANALYTICS_ENDPOINT"
         static let appTokenInfoKey = "ANALYTICS_APP_TOKEN"
         static let raffleEndpointInfoKey = "RAFFLE_ENDPOINT"
+        static let communityStatsEndpointInfoKey = "COMMUNITY_STATS_ENDPOINT"
         static let fallbackEndpoint = "https://api.derbergschein.de/track.php"
         static let fallbackRaffleEndpoint = "https://api.derbergschein.de/raffle.php"
+        static let fallbackCommunityStatsEndpoint = "https://api.derbergschein.de/community.php"
         static let pendingQueueStorageKey = "analyticsPendingEventQueueV1"
         static let requestTimeout: TimeInterval = 8
         static let maxQueuedEvents = 200
@@ -54,6 +73,14 @@ actor AnalyticsService {
             guard let configuredEndpoint = Bundle.main.object(forInfoDictionaryKey: raffleEndpointInfoKey) as? String,
                   !configuredEndpoint.isEmpty else {
                 return fallbackRaffleEndpoint
+            }
+            return configuredEndpoint
+        }
+
+        static var communityStatsEndpoint: String {
+            guard let configuredEndpoint = Bundle.main.object(forInfoDictionaryKey: communityStatsEndpointInfoKey) as? String,
+                  !configuredEndpoint.isEmpty else {
+                return fallbackCommunityStatsEndpoint
             }
             return configuredEndpoint
         }
@@ -98,6 +125,26 @@ actor AnalyticsService {
             case badgeCountAtConsent = "badge_count_at_consent"
             case challengeCountAtConsent = "challenge_count_at_consent"
             case isPerfectSoFar = "is_perfect_so_far"
+        }
+    }
+
+    private struct CommunityStatsResponse: Decodable {
+        let ok: Bool
+        let generatedAt: String
+        let basis: String
+        let totalCollectors: Int
+        let averageCheckins: Double
+        let maxCheckins: Int
+        let distribution: [CommunityDistributionEntry]
+
+        enum CodingKeys: String, CodingKey {
+            case ok
+            case generatedAt = "generated_at"
+            case basis
+            case totalCollectors = "total_collectors"
+            case averageCheckins = "average_checkins"
+            case maxCheckins = "max_checkins"
+            case distribution
         }
     }
 
@@ -218,6 +265,40 @@ actor AnalyticsService {
         } catch {
             return false
         }
+    }
+
+    func fetchCommunityStats() async throws -> CommunityStats? {
+        guard let url = URL(string: Config.communityStatsEndpoint),
+              !Config.appToken.isEmpty else {
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = Config.requestTimeout
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue(Config.appToken, forHTTPHeaderField: "X-App-Token")
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            return nil
+        }
+
+        let decoded = try JSONDecoder().decode(CommunityStatsResponse.self, from: data)
+        guard decoded.ok else {
+            return nil
+        }
+
+        return CommunityStats(
+            generatedAt: decoded.generatedAt,
+            basis: decoded.basis,
+            totalCollectors: decoded.totalCollectors,
+            averageCheckins: decoded.averageCheckins,
+            maxCheckins: decoded.maxCheckins,
+            distribution: decoded.distribution
+        )
     }
 
     private func send(request: URLRequest) async throws -> Bool {

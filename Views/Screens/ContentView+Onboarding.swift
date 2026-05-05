@@ -197,7 +197,7 @@ extension ContentView {
             OnboardingPage(
                 icon: "🎁",
                 title: "Verlosung",
-                text: "Nimm unter 'Mehr' an der Verlosung teil. Verlost werden drei Preise per Los gemäß Teilnahmebedingungen. Viel Erfolg!",
+                text: "Nimm unter 'Mehr' an der Verlosung teil. Verlost werden drei Preise per Los an die fleißigsten Berggänger. Viel Erfolg!",
                 showsRafflePrizes: true
             )
         ]

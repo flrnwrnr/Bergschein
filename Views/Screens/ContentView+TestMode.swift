@@ -11,6 +11,71 @@ extension ContentView {
         return displayDate.formatted(date: .abbreviated, time: .shortened)
     }
 
+    var hasSimulatedTimeOverride: Bool {
+        simulatedTimeMinutes >= 0
+    }
+
+    var simulatedTimeDisplayText: String {
+        guard hasSimulatedTimeOverride else {
+            return "Systemzeit"
+        }
+        let hour = simulatedTimeMinutes / 60
+        let minute = simulatedTimeMinutes % 60
+        return String(format: "%02d:%02d Uhr", hour, minute)
+    }
+
+    var simulatedTimePickerDate: Date {
+        let calendar = Calendar.current
+        let now = Date()
+        guard hasSimulatedTimeOverride else {
+            return now
+        }
+
+        let hour = simulatedTimeMinutes / 60
+        let minute = simulatedTimeMinutes % 60
+        var components = calendar.dateComponents([.year, .month, .day], from: now)
+        components.hour = hour
+        components.minute = minute
+        components.second = 0
+        return calendar.date(from: components) ?? now
+    }
+
+    func simulatedTimeSource(from liveDate: Date) -> Date {
+        guard hasSimulatedTimeOverride else {
+            return liveDate
+        }
+
+        let calendar = Calendar.current
+        let hour = simulatedTimeMinutes / 60
+        let minute = simulatedTimeMinutes % 60
+        var components = calendar.dateComponents([.year, .month, .day], from: liveDate)
+        components.hour = hour
+        components.minute = minute
+        components.second = 0
+        return calendar.date(from: components) ?? liveDate
+    }
+
+    func setSimulatedTime(from pickerDate: Date) {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: pickerDate)
+        let hour = components.hour ?? 0
+        let minute = components.minute ?? 0
+        simulatedTimeMinutes = (hour * 60) + minute
+
+        if useSimulatedDate {
+            currentDate = simulatedDate(for: currentDate, usingTimeFrom: simulatedTimeSource(from: Date()))
+            evaluateMissedDayNotice()
+        }
+    }
+
+    func resetSimulatedTimeToSystem() {
+        simulatedTimeMinutes = -1
+
+        if useSimulatedDate {
+            currentDate = simulatedDate(for: currentDate, usingTimeFrom: Date())
+            evaluateMissedDayNotice()
+        }
+    }
+
     func simulatedDate(for targetDate: Date, usingTimeFrom timeSource: Date) -> Date {
         BergscheinDateHelper.mergedDate(day: targetDate, timeSource: timeSource)
     }
@@ -20,7 +85,7 @@ extension ContentView {
 
         if !useSimulatedDate {
             useSimulatedDate = true
-            currentDate = defaultEventStartDate.map { simulatedDate(for: $0, usingTimeFrom: Date()) } ?? currentDate
+            currentDate = defaultEventStartDate.map { simulatedDate(for: $0, usingTimeFrom: simulatedTimeSource(from: Date())) } ?? currentDate
             evaluateMissedDayNotice()
             return
         }
@@ -47,6 +112,7 @@ extension ContentView {
         }
         dismissedMissedBadgeIdentifier = ""
         adSlotOverride = .automatic
+        simulatedTimeMinutes = -1
         useSimulatedDate = false
         syncCurrentDate()
         locationController.clearTestRegion()
@@ -58,6 +124,7 @@ extension ContentView {
         ffwdLogoTapCount = 0
         testEventStartDay = ""
         adSlotOverride = .automatic
+        simulatedTimeMinutes = -1
         useSimulatedDate = false
         syncCurrentDate()
         locationController.clearTestRegion()
