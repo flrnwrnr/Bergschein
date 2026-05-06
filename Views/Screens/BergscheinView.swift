@@ -10,13 +10,16 @@ struct BergscheinView: View {
     let badgeDefinitions: [BadgeDefinition]
     let unlockedBadges: Set<String>
     let blockingMissedBadge: BadgeDefinition?
+    let hasLostLargeBergscheinChance: Bool
     let dismissedMissedBadgeIdentifier: String
+    let dismissedMissedNoticeBadgeIdentifier: String
     let darkForest: Color
     let overlayPresentationAnimation: Animation
     let standardBadges: (BadgeCategory) -> [BadgeDefinition]
     let featuredBadge: (BadgeCategory) -> BadgeDefinition?
     let resolvedImageName: (BadgeDefinition) -> String?
     let onMissedBadgeTap: (BadgeDefinition) -> Void
+    let onDismissMissedNotice: (BadgeDefinition) -> Void
     let onBadgeTap: (BadgeDefinition) -> Void
     let onShareTap: () -> Void
 
@@ -33,7 +36,7 @@ struct BergscheinView: View {
                             unlockedBadges: unlockedBadges
                         )
 
-                        if let blockedBadge = blockingMissedBadge, dismissedMissedBadgeIdentifier == blockedBadge.id {
+                        if let blockedBadge = blockingMissedBadge, dismissedMissedNoticeBadgeIdentifier != blockedBadge.id {
                             MissedBergscheinNoticeCard(
                                 badge: blockedBadge,
                                 darkForest: darkForest,
@@ -41,11 +44,14 @@ struct BergscheinView: View {
                                     withAnimation(overlayPresentationAnimation) {
                                         onMissedBadgeTap(blockedBadge)
                                     }
+                                },
+                                onDismiss: {
+                                    onDismissMissedNotice(blockedBadge)
                                 }
                             )
                         }
 
-                        if blockingMissedBadge != nil {
+                        if hasLostLargeBergscheinChance {
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 2), spacing: 16) {
                                 ForEach(badgeDefinitions) { badge in
                                     BadgeCardView(

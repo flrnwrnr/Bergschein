@@ -198,47 +198,61 @@ struct MissedBergscheinNoticeCard: View {
     let badge: BadgeDefinition
     let darkForest: Color
     let onTap: () -> Void
+    let onDismiss: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Color.appWarningBackground)
-                        .frame(width: 52, height: 52)
+        ZStack(alignment: .topTrailing) {
+            Button(action: onTap) {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.appWarningBackground)
+                            .frame(width: 52, height: 52)
 
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(Color.appWarningTint)
-                }
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(Color.appWarningTint)
+                    }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Großer Bergschein nicht mehr erreichbar")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(darkForest)
-                        .multilineTextAlignment(.leading)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Großer Bergschein nicht mehr erreichbar")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(darkForest)
+                            .multilineTextAlignment(.leading)
 
-                    Text("Du hast einen Tag verpasst. Du kannst aber weiter sammeln.")
-                        .font(.subheadline)
+                        Text("Du hast einen Tag verpasst. Du kannst aber weiter sammeln.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.bold))
                         .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.leading)
                 }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.bold))
-                    .foregroundStyle(.secondary)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color.appWarningBackground.opacity(0.34))
+                )
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.appWarningBackground.opacity(0.34))
-            )
+            .buttonStyle(.plain)
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary.opacity(0.75))
+                    .padding(6)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 6)
+            .padding(.trailing, 6)
         }
-        .buttonStyle(.plain)
     }
 }
 

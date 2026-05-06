@@ -95,7 +95,9 @@ extension ContentView {
             badgeDefinitions: badgeDefinitions,
             unlockedBadges: unlockedBadges,
             blockingMissedBadge: blockingMissedBadge,
+            hasLostLargeBergscheinChance: hasLostLargeBergscheinChance,
             dismissedMissedBadgeIdentifier: dismissedMissedBadgeIdentifier,
+            dismissedMissedNoticeBadgeIdentifier: dismissedMissedNoticeBadgeIdentifier,
             darkForest: darkForest,
             overlayPresentationAnimation: overlayPresentationAnimation,
             standardBadges: standardBadges(in:),
@@ -103,6 +105,9 @@ extension ContentView {
             resolvedImageName: resolvedImageName(for:),
             onMissedBadgeTap: { blockedBadge in
                 activeMissedDayAlert = MissedDayAlertPresentation(missedBadge: blockedBadge)
+            },
+            onDismissMissedNotice: { blockedBadge in
+                dismissedMissedNoticeBadgeIdentifier = blockedBadge.id
             },
             onBadgeTap: { badge in
                 activeBadgeOverlay = BadgeOverlayPresentation(
@@ -742,7 +747,7 @@ extension ContentView {
                 prizeImageName: "zirkelcard",
                 sponsorImageName: "werbung_zirkel",
                 title: "1. Preis",
-                text: "Eine exklusive Zirkel-Card für kostenlosen Eintritt"
+                text: "Eine exklusive Zirkel-Card für ein Jahr kostenlosen Eintritt"
             ),
             RafflePrizeItem(
                 id: "raffle-2",
@@ -750,7 +755,7 @@ extension ContentView {
                 prizeImageName: "trikot",
                 sponsorImageName: "werbung_tb",
                 title: "2. Preis",
-                text: "Ein Trikot mit Unterschriften aller Regionalligaspielerinnen."
+                text: "Ein TB-Trikot mit Unterschriften aller Regionalligaspielerinnen."
             ),
             RafflePrizeItem(
                 id: "raffle-3",
@@ -795,9 +800,9 @@ extension ContentView {
 
         (1) Der Veranstalter führt eine unentgeltliche Verlosung innerhalb der App „Der Bergschein“ durch.
         (2) Verlost werden folgende Preise:
-            • 1. Preis: Eine exklusive Zirkel-Card.
-            • 2. Preis: Ein Trikot mit Unterschriften aller Regionalligaspielerinnen.
-            • 3. Preis: Ein 20€ Gutschein bei Eat fresh & tasty, dem ersten Gemüse Kebap in Erlangen.
+            • 1. Preis: Eine exklusive Zirkel-Card für ein Jahr kostenlosen Eintritt.
+            • 2. Preis: Ein TB-Trikot mit Unterschriften aller Regionalligaspielerinnen.
+            • 3. Preis: Ein 20€ Gutschein bei Eat fresh & tasty.
         (3) Eine Barauszahlung oder ein Umtausch der Gewinne ist ausgeschlossen.
         (4) Die Verlosung dient ausschließlich der App-Aktivierung und ist kein Glücksspiel mit Entgelt.
 

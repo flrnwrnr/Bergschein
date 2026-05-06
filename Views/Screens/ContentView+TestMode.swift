@@ -111,6 +111,7 @@ extension ContentView {
             activeMissedDayAlert = nil
         }
         dismissedMissedBadgeIdentifier = ""
+        dismissedMissedNoticeBadgeIdentifier = ""
         adSlotOverride = .automatic
         simulatedTimeMinutes = -1
         useSimulatedDate = false

@@ -40,8 +40,12 @@ struct CheckInView: View {
                 appBackgroundGradient
                     .ignoresSafeArea()
 
-                VStack(spacing: 24) {
-                    VStack(alignment: .leading, spacing: 18) {
+                GeometryReader { proxy in
+                    let isCompactHeight = proxy.size.height < 700
+
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: isCompactHeight ? 16 : 24) {
+                            VStack(alignment: .leading, spacing: isCompactHeight ? 14 : 18) {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(checkInHeadlineLabel)
@@ -49,7 +53,7 @@ struct CheckInView: View {
                                     .foregroundStyle(statusForegroundColor.opacity(0.82))
 
                                 Text(checkInHeadlineValue)
-                                    .font(.system(size: 34, weight: .black, design: .serif))
+                                    .font(.system(size: isCompactHeight ? 30 : 34, weight: .black, design: .serif))
                                     .foregroundStyle(statusForegroundColor)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -90,9 +94,9 @@ struct CheckInView: View {
                                 .frame(height: 72)
                         }
                     }
-                    .padding(24)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(minHeight: isCurrentBadgeUnlocked ? 210 : nil, alignment: .topLeading)
+                            .padding(isCompactHeight ? 18 : 24)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(minHeight: isCurrentBadgeUnlocked ? (isCompactHeight ? 180 : 210) : nil, alignment: .topLeading)
                     .background(
                         RoundedRectangle(cornerRadius: 28, style: .continuous)
                             .fill(statusGradient)
@@ -167,10 +171,12 @@ struct CheckInView: View {
                         )
                     }
 
-                    Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, isCompactHeight ? 16 : 24)
+                        .padding(.bottom, isCompactHeight ? 104 : 120)
+                    }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 24)
             }
             .navigationTitle("Check-in")
             .toolbar {

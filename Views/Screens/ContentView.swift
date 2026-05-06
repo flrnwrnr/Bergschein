@@ -76,6 +76,7 @@ struct ContentView: View {
     @AppStorage("raffleContactName") var raffleContactName = ""
     @AppStorage("testEventStartDay") var testEventStartDay = ""
     @AppStorage("dismissedMissedBadgeIdentifier") var dismissedMissedBadgeIdentifier = ""
+    @AppStorage("dismissedMissedNoticeBadgeIdentifier") var dismissedMissedNoticeBadgeIdentifier = ""
     @AppStorage("hapticsEnabled") var hapticsEnabled = true
     @AppStorage("hasSeenOnboarding") var hasSeenOnboarding = false
     @AppStorage("isDebugMenuUnlocked") var isDebugMenuUnlocked = false

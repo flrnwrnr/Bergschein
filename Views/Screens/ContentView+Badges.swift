@@ -90,6 +90,14 @@ extension ContentView {
         return streak
     }
 
+    var hasLostLargeBergscheinChance: Bool {
+        if blockingMissedBadge != nil {
+            return true
+        }
+
+        return hasEventEnded && unlockedBadges.count < badgeDefinitions.count
+    }
+
     var blockingMissedBadge: BadgeDefinition? {
         guard let currentBadgeIndex = currentBadge.flatMap({ badge in
             badgeDefinitions.firstIndex(where: { $0.id == badge.id })
@@ -338,7 +346,7 @@ extension ContentView {
     }
 
     func resolvedImageName(for badge: BadgeDefinition) -> String? {
-        if badge.id == "06-01", blockingMissedBadge != nil {
+        if badge.id == "06-01", hasLostLargeBergscheinChance {
             return "badge12b"
         }
         return badge.imageName
