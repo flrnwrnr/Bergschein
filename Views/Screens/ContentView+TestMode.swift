@@ -8,7 +8,12 @@ extension ContentView {
 
     var formattedCurrentDate: String {
         let displayDate = useSimulatedDate ? currentDate : Date()
-        return displayDate.formatted(date: .abbreviated, time: .shortened)
+        return displayDate.formatted(
+            Date.FormatStyle(
+                date: .abbreviated, time: .shortened,
+                timeZone: useSimulatedDate ? BergscheinDateHelper.eventCalendar.timeZone : .current
+            )
+        )
     }
 
     var hasSimulatedTimeOverride: Bool {
@@ -25,7 +30,7 @@ extension ContentView {
     }
 
     var simulatedTimePickerDate: Date {
-        let calendar = Calendar.current
+        let calendar = BergscheinDateHelper.eventCalendar
         let now = Date()
         guard hasSimulatedTimeOverride else {
             return now
@@ -45,7 +50,7 @@ extension ContentView {
             return liveDate
         }
 
-        let calendar = Calendar.current
+        let calendar = BergscheinDateHelper.eventCalendar
         let hour = simulatedTimeMinutes / 60
         let minute = simulatedTimeMinutes % 60
         var components = calendar.dateComponents([.year, .month, .day], from: liveDate)
@@ -56,7 +61,7 @@ extension ContentView {
     }
 
     func setSimulatedTime(from pickerDate: Date) {
-        let components = Calendar.current.dateComponents([.hour, .minute], from: pickerDate)
+        let components = BergscheinDateHelper.eventCalendar.dateComponents([.hour, .minute], from: pickerDate)
         let hour = components.hour ?? 0
         let minute = components.minute ?? 0
         simulatedTimeMinutes = (hour * 60) + minute
@@ -77,7 +82,7 @@ extension ContentView {
     }
 
     func simulatedDate(for targetDate: Date, usingTimeFrom timeSource: Date) -> Date {
-        BergscheinDateHelper.mergedDate(day: targetDate, timeSource: timeSource)
+        BergscheinDateHelper.mergedDate(day: targetDate, timeSource: timeSource, calendar: BergscheinDateHelper.eventCalendar)
     }
 
     func goToNextDay() {
@@ -85,29 +90,26 @@ extension ContentView {
 
         if !useSimulatedDate {
             useSimulatedDate = true
-            currentDate = defaultEventStartDate.map { simulatedDate(for: $0, usingTimeFrom: simulatedTimeSource(from: Date())) } ?? currentDate
+            if !hasSimulatedTimeOverride {
+                simulatedTimeMinutes = 17 * 60
+            }
+            currentDate = simulatedDate(for: testEventStartDate, usingTimeFrom: simulatedTimeSource(from: Date()))
+            selectedBadgeSeason = activeBadgeSeason
             evaluateMissedDayNotice()
             return
         }
 
         useSimulatedDate = true
-        currentDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        currentDate = BergscheinDateHelper.eventCalendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
         evaluateMissedDayNotice()
     }
 
     func resetProgress() {
-        unlockedBadgeIdentifiers = ""
-        completedChallengeIdentifiers = ""
-        tbDrinkRewardUnlocked = false
-        tbDrinkRewardRedeemed = false
-        zirkelRewardUnlocked = false
-        zirkelRewardRedeemed = false
-        bibOfferRewardUnlocked = false
-        bibOfferRewardRedeemed = false
-        testEventStartDay = ""
+        seasonProgressStore.resetProgress(in: activeBadgeSeason.id)
         withAnimation(overlayDismissAnimation) {
             activeBadgeOverlay = nil
             activeChallengeRewardOverlay = nil
+            activeChallengeOverlay = nil
             activeMissedDayAlert = nil
         }
         dismissedMissedBadgeIdentifier = ""
@@ -123,7 +125,6 @@ extension ContentView {
     func deactivateTestMode() {
         isDebugMenuUnlocked = false
         ffwdLogoTapCount = 0
-        testEventStartDay = ""
         adSlotOverride = .automatic
         simulatedTimeMinutes = -1
         useSimulatedDate = false

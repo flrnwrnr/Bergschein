@@ -6,6 +6,18 @@
 import Foundation
 
 enum BergscheinDateHelper {
+    static let eventCalendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
+        return calendar
+    }()
+
+    // Preview only: this date must not determine the existing stamp season.
+    static let nextOpeningDate = date(
+        year: 2027, month: 5, day: 13, hour: 17, minute: 0,
+        calendar: eventCalendar
+    )!
+
     static func mergedDate(day: Date, timeSource: Date, calendar: Calendar = .current) -> Date {
         let targetDay = calendar.dateComponents([.year, .month, .day], from: day)
         let time = calendar.dateComponents([.hour, .minute, .second], from: timeSource)

@@ -9,6 +9,11 @@ struct ChangeLogView: View {
     let backgroundGradient: LinearGradient
 
     private let entries = [
+        ChangeLogEntry(version: "2026.3", date: "14.09.2026", sections: [
+            ChangeLogSection(title: "Neu", color: .green, items: [
+                "Vorbereitungen für die nächste Bergkirchweih 2027"
+            ])
+        ]),
         ChangeLogEntry(version: "2026.2.1", date: "06.05.2026", sections: [
             ChangeLogSection(title: "Verbessert", color: .blue, items: [
                 "Kleinere Design-Anpassungen"

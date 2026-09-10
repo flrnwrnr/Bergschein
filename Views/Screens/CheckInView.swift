@@ -14,6 +14,7 @@ struct CheckInView: View {
     let claimStatusText: String
     let canClaimToday: Bool
     let hasEventEnded: Bool
+    let isShowingNextOpeningCountdown: Bool
     let hasOfficialOpeningStarted: Bool
     let currentBadgeImageName: String?
     let isCurrentBadgeUnlocked: Bool
@@ -60,7 +61,10 @@ struct CheckInView: View {
 
                             Spacer()
 
-                            if hasEventEnded {
+                            if isShowingNextOpeningCountdown {
+                                Text("🎡")
+                                    .font(.system(size: 52))
+                            } else if hasEventEnded {
                                 Text("😮‍💨")
                                     .font(.system(size: 52))
                             } else if let currentBadgeImageName {

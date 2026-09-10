@@ -47,11 +47,11 @@ extension ContentView {
 
     @MainActor
     func makeBergscheinShareImage() -> UIImage? {
-        let latestUnlockedBadge = badgeDefinitions.last { unlockedBadges.contains($0.id) }
+        let latestUnlockedBadge = displayedBadgeDefinitions.last { displayedUnlockedBadges.contains($0.id) }
         let renderer = ImageRenderer(
             content: BergscheinShareGraphicView(
-                visitedDays: unlockedBadges.count,
-                totalDays: badgeDefinitions.count,
+                visitedDays: displayedUnlockedBadges.count,
+                totalDays: displayedBadgeDefinitions.count,
                 imageName: latestUnlockedBadge.flatMap { resolvedImageName(for: $0) }
             )
         )

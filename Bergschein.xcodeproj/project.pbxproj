@@ -22,6 +22,18 @@
 		A65A44B42F72EA6F000B2A35 /* badge12.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A449D2F72EA6F000B2A35 /* badge12.png */; };
 		A65A44B52F72EA6F000B2A35 /* badge12b.png in Resources */ = {isa = PBXBuildFile; fileRef = A65A449E2F72EA6F000B2A35 /* badge12b.png */; };
 		A65A44B62F72EA6F000B2A35 /* font.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A65A44A22F72EA6F000B2A35 /* font.ttf */; };
+		B72027000000000000000001 /* badge2027_1.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000011 /* badge2027_1.png */; };
+		B72027000000000000000002 /* badge2027_2.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000012 /* badge2027_2.png */; };
+		B72027000000000000000003 /* badge2027_3.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000013 /* badge2027_3.png */; };
+		B72027000000000000000004 /* badge2027_4.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000014 /* badge2027_4.png */; };
+		B72027000000000000000005 /* badge2027_5.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000015 /* badge2027_5.png */; };
+		B72027000000000000000006 /* badge2027_6.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000016 /* badge2027_6.png */; };
+		B72027000000000000000007 /* badge2027_7.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000017 /* badge2027_7.png */; };
+		B72027000000000000000008 /* badge2027_8.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000018 /* badge2027_8.png */; };
+		B72027000000000000000009 /* badge2027_9.png in Resources */ = {isa = PBXBuildFile; fileRef = B72027000000000000000019 /* badge2027_9.png */; };
+		B7202700000000000000000A /* badge2027_10.png in Resources */ = {isa = PBXBuildFile; fileRef = B7202700000000000000001A /* badge2027_10.png */; };
+		B7202700000000000000000B /* badge2027_11.png in Resources */ = {isa = PBXBuildFile; fileRef = B7202700000000000000001B /* badge2027_11.png */; };
+		B7202700000000000000000C /* badge2027_12.png in Resources */ = {isa = PBXBuildFile; fileRef = B7202700000000000000001C /* badge2027_12.png */; };
 		A65A44BB2F72EA6F000B2A35 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44A12F72EA6F000B2A35 /* ContentView.swift */; };
 		A65A44C02F72EEF7000B2A35 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44BD2F72EEF7000B2A35 /* AppModels.swift */; };
 		A65A44C12F72EEF7000B2A35 /* AppServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44BE2F72EEF7000B2A35 /* AppServices.swift */; };
@@ -48,7 +60,20 @@
 		A65A44F72F72FA62000B2A35 /* ContentView+Badges.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44F62F72FA62000B2A35 /* ContentView+Badges.swift */; };
 		A65A44F92F72FA62000B2A35 /* ContentView+Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A44F82F72FA62000B2A35 /* ContentView+Notifications.swift */; };
 		A6B5C74B2FAA104F00194871 /* CommunityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B5C74A2FAA104F00194871 /* CommunityView.swift */; };
+		BE2027000000000000000001 /* SeasonCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2027000000000000000002 /* SeasonCatalog.swift */; };
+		BE2027000000000000000003 /* SeasonProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2027000000000000000004 /* SeasonProgressStore.swift */; };
+		BE2027000000000000000101 /* SeasonCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2027000000000000000102 /* SeasonCatalogTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BE2027000000000000000109 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A69F0BCA2F6D5A9800D2C755 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A69F0BD12F6D5A9800D2C755;
+			remoteInfo = Bergschein;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		A65A44902F72EA6F000B2A35 /* appstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = appstore.png; sourceTree = "<group>"; };
@@ -65,6 +90,18 @@
 		A65A449C2F72EA6F000B2A35 /* badge11.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge11.png; sourceTree = "<group>"; };
 		A65A449D2F72EA6F000B2A35 /* badge12.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge12.png; sourceTree = "<group>"; };
 		A65A449E2F72EA6F000B2A35 /* badge12b.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge12b.png; sourceTree = "<group>"; };
+		B72027000000000000000011 /* badge2027_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_1.png; sourceTree = "<group>"; };
+		B72027000000000000000012 /* badge2027_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_2.png; sourceTree = "<group>"; };
+		B72027000000000000000013 /* badge2027_3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_3.png; sourceTree = "<group>"; };
+		B72027000000000000000014 /* badge2027_4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_4.png; sourceTree = "<group>"; };
+		B72027000000000000000015 /* badge2027_5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_5.png; sourceTree = "<group>"; };
+		B72027000000000000000016 /* badge2027_6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_6.png; sourceTree = "<group>"; };
+		B72027000000000000000017 /* badge2027_7.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_7.png; sourceTree = "<group>"; };
+		B72027000000000000000018 /* badge2027_8.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_8.png; sourceTree = "<group>"; };
+		B72027000000000000000019 /* badge2027_9.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_9.png; sourceTree = "<group>"; };
+		B7202700000000000000001A /* badge2027_10.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_10.png; sourceTree = "<group>"; };
+		B7202700000000000000001B /* badge2027_11.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_11.png; sourceTree = "<group>"; };
+		B7202700000000000000001C /* badge2027_12.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge2027_12.png; sourceTree = "<group>"; };
 		A65A44A12F72EA6F000B2A35 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A65A44A22F72EA6F000B2A35 /* font.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = font.ttf; sourceTree = "<group>"; };
 		A65A44BD2F72EEF7000B2A35 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
@@ -93,6 +130,10 @@
 		A65A44F82F72FA62000B2A35 /* ContentView+Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Notifications.swift"; sourceTree = "<group>"; };
 		A69F0BD22F6D5A9800D2C755 /* Bergschein.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bergschein.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6B5C74A2FAA104F00194871 /* CommunityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityView.swift; sourceTree = "<group>"; };
+		BE2027000000000000000002 /* SeasonCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonCatalog.swift; sourceTree = "<group>"; };
+		BE2027000000000000000004 /* SeasonProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonProgressStore.swift; sourceTree = "<group>"; };
+		BE2027000000000000000102 /* SeasonCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonCatalogTests.swift; sourceTree = "<group>"; };
+		BE2027000000000000000103 /* BergscheinTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BergscheinTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -118,6 +159,13 @@
 
 /* Begin PBXFrameworksBuildPhase section */
 		A69F0BCF2F6D5A9800D2C755 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE2027000000000000000107 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -152,6 +200,18 @@
 				A65A449C2F72EA6F000B2A35 /* badge11.png */,
 				A65A449D2F72EA6F000B2A35 /* badge12.png */,
 				A65A449E2F72EA6F000B2A35 /* badge12b.png */,
+				B72027000000000000000011 /* badge2027_1.png */,
+				B72027000000000000000012 /* badge2027_2.png */,
+				B72027000000000000000013 /* badge2027_3.png */,
+				B72027000000000000000014 /* badge2027_4.png */,
+				B72027000000000000000015 /* badge2027_5.png */,
+				B72027000000000000000016 /* badge2027_6.png */,
+				B72027000000000000000017 /* badge2027_7.png */,
+				B72027000000000000000018 /* badge2027_8.png */,
+				B72027000000000000000019 /* badge2027_9.png */,
+				B7202700000000000000001A /* badge2027_10.png */,
+				B7202700000000000000001B /* badge2027_11.png */,
+				B7202700000000000000001C /* badge2027_12.png */,
 				A65A44902F72EA6F000B2A35 /* appstore.png */,
 			);
 			path = Images;
@@ -161,6 +221,8 @@
 			isa = PBXGroup;
 			children = (
 				A65A44BD2F72EEF7000B2A35 /* AppModels.swift */,
+				BE2027000000000000000002 /* SeasonCatalog.swift */,
+				BE2027000000000000000004 /* SeasonProgressStore.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -245,6 +307,7 @@
 				A65A44D62F72F2CE000B2A35 /* Helpers */,
 				A65A44D72F72F2CE000B2A35 /* Services */,
 				A65A44D82F72F2CE000B2A35 /* Views */,
+				BE2027000000000000000104 /* BergscheinTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -252,8 +315,17 @@
 			isa = PBXGroup;
 			children = (
 				A69F0BD22F6D5A9800D2C755 /* Bergschein.app */,
+				BE2027000000000000000103 /* BergscheinTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BE2027000000000000000104 /* BergscheinTests */ = {
+			isa = PBXGroup;
+			children = (
+				BE2027000000000000000102 /* SeasonCatalogTests.swift */,
+			);
+			path = BergscheinTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -281,6 +353,25 @@
 			productReference = A69F0BD22F6D5A9800D2C755 /* Bergschein.app */;
 			productType = "com.apple.product-type.application";
 		};
+		BE2027000000000000000105 /* BergscheinTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BE2027000000000000000112 /* Build configuration list for PBXNativeTarget "BergscheinTests" */;
+			buildPhases = (
+				BE2027000000000000000106 /* Sources */,
+				BE2027000000000000000107 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BE2027000000000000000108 /* PBXTargetDependency */,
+			);
+			name = BergscheinTests;
+			packageProductDependencies = (
+			);
+			productName = BergscheinTests;
+			productReference = BE2027000000000000000103 /* BergscheinTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -291,9 +382,13 @@
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
-					A69F0BD12F6D5A9800D2C755 = {
+				A69F0BD12F6D5A9800D2C755 = {
 						CreatedOnToolsVersion = 26.3;
 					};
+				};
+				BE2027000000000000000105 = {
+					CreatedOnToolsVersion = 26.3;
+					TestTargetID = A69F0BD12F6D5A9800D2C755;
 				};
 			};
 			buildConfigurationList = A69F0BCD2F6D5A9800D2C755 /* Build configuration list for PBXProject "Bergschein" */;
@@ -311,6 +406,7 @@
 			projectRoot = "";
 			targets = (
 				A69F0BD12F6D5A9800D2C755 /* Bergschein */,
+				BE2027000000000000000105 /* BergscheinTests */,
 			);
 		};
 /* End PBXProject section */
@@ -334,6 +430,18 @@
 				A65A44B32F72EA6F000B2A35 /* badge11.png in Resources */,
 				A65A44B42F72EA6F000B2A35 /* badge12.png in Resources */,
 				A65A44B52F72EA6F000B2A35 /* badge12b.png in Resources */,
+				B72027000000000000000001 /* badge2027_1.png in Resources */,
+				B72027000000000000000002 /* badge2027_2.png in Resources */,
+				B72027000000000000000003 /* badge2027_3.png in Resources */,
+				B72027000000000000000004 /* badge2027_4.png in Resources */,
+				B72027000000000000000005 /* badge2027_5.png in Resources */,
+				B72027000000000000000006 /* badge2027_6.png in Resources */,
+				B72027000000000000000007 /* badge2027_7.png in Resources */,
+				B72027000000000000000008 /* badge2027_8.png in Resources */,
+				B72027000000000000000009 /* badge2027_9.png in Resources */,
+				B7202700000000000000000A /* badge2027_10.png in Resources */,
+				B7202700000000000000000B /* badge2027_11.png in Resources */,
+				B7202700000000000000000C /* badge2027_12.png in Resources */,
 				A65A44B62F72EA6F000B2A35 /* font.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -369,12 +477,30 @@
 				A65A44F12F72F9FD000B2A35 /* ContentView+Ads.swift in Sources */,
 				A65A44EF2F72F9FD000B2A35 /* ContentView+Appearance.swift in Sources */,
 				A65A44C02F72EEF7000B2A35 /* AppModels.swift in Sources */,
+				BE2027000000000000000001 /* SeasonCatalog.swift in Sources */,
+				BE2027000000000000000003 /* SeasonProgressStore.swift in Sources */,
 				A65A44D22F72F1E3000B2A35 /* ComponentViews.swift in Sources */,
 				A65A44C12F72EEF7000B2A35 /* AppServices.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BE2027000000000000000106 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE2027000000000000000101 /* SeasonCatalogTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BE2027000000000000000108 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A69F0BD12F6D5A9800D2C755 /* Bergschein */;
+			targetProxy = BE2027000000000000000109 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A69F0BDD2F6D5A9900D2C755 /* Debug */ = {
@@ -522,7 +648,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2026.2.1;
+				MARKETING_VERSION = 2026.3;
 				PRODUCT_BUNDLE_IDENTIFIER = de.ffwdventures.Bergschein;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -563,7 +689,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2026.2.1;
+				MARKETING_VERSION = 2026.3;
 				PRODUCT_BUNDLE_IDENTIFIER = de.ffwdventures.Bergschein;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -580,7 +706,39 @@
 			};
 			name = Release;
 		};
-/* End XCBuildConfiguration section */
+		BE2027000000000000000110 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.ffwdventures.BergscheinTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Bergschein.app/Bergschein";
+			};
+			name = Debug;
+		};
+		BE2027000000000000000111 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.ffwdventures.BergscheinTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Bergschein.app/Bergschein";
+			};
+			name = Release;
+		};
+	/* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
 		A69F0BCD2F6D5A9800D2C755 /* Build configuration list for PBXProject "Bergschein" */ = {
@@ -601,7 +759,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-/* End XCConfigurationList section */
+		BE2027000000000000000112 /* Build configuration list for PBXNativeTarget "BergscheinTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE2027000000000000000110 /* Debug */,
+				BE2027000000000000000111 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+	/* End XCConfigurationList section */
 	};
 	rootObject = A69F0BCA2F6D5A9800D2C755 /* Project object */;
 }

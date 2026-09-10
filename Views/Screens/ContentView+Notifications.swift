@@ -2,25 +2,20 @@ import SwiftUI
 import UserNotifications
 
 extension ContentView {
-    var notificationEventYear: Int {
-        challengeDefinitions.first?.year ?? Calendar.current.component(.year, from: Date())
-    }
-
-    var notificationEventStartDate: Date? {
-        notificationDate(month: 5, day: 21, hour: 0, minute: 0)
-    }
-
-    var notificationOfficialOpeningDate: Date? {
-        notificationDate(month: 5, day: 21, hour: 17, minute: 0)
-    }
-
-    func notificationDate(month: Int, day: Int, hour: Int, minute: Int) -> Date? {
+    func notificationDate(
+        in season: SeasonDefinition,
+        month: Int,
+        day: Int,
+        hour: Int,
+        minute: Int
+    ) -> Date? {
         BergscheinDateHelper.date(
-            year: notificationEventYear,
+            year: season.openingAt.year,
             month: month,
             day: day,
             hour: hour,
-            minute: minute
+            minute: minute,
+            calendar: season.calendar
         )
     }
 
@@ -138,19 +133,26 @@ extension ContentView {
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
-    func makeNotificationRequests(now: Date = Date()) -> [UNNotificationRequest] {
+    func makeNotificationRequests() -> [UNNotificationRequest] {
+        let now = currentDate
+        let season = activeBadgeSeason
+        let phase = season.phase(at: now)
         var requests: [UNNotificationRequest] = []
 
-        if let officialOpeningDate = notificationOfficialOpeningDate, officialOpeningDate > now {
+        guard phase == .preview || phase == .active else {
+            return requests
+        }
+
+        if season.openingDate > now {
             let content = UNMutableNotificationContent()
             content.title = "Jetzt Anstich!"
             content.body = "Der Berg startet jetzt für dieses Jahr. Hol dir deinen ersten Stempel."
             content.sound = .default
 
-            if let trigger = calendarTrigger(for: officialOpeningDate) {
+            if let trigger = calendarTrigger(for: season.openingDate, in: season.calendar) {
                 requests.append(
                     UNNotificationRequest(
-                        identifier: "bergschein.event-start",
+                        identifier: "bergschein.\(season.id).event-start",
                         content: content,
                         trigger: trigger
                     )
@@ -159,9 +161,11 @@ extension ContentView {
         }
 
         if stampNotificationsEnabled {
-            for badge in badgeDefinitions where !unlockedBadges.contains(badge.id) {
-                guard let reminderDate = notificationDate(month: badge.month, day: badge.day, hour: 19, minute: 0),
-                      reminderDate > now else {
+            for badge in season.badges where !unlockedBadges.contains(badge.id) {
+                guard let reminderDate = notificationDate(in: season, month: badge.month, day: badge.day, hour: 19, minute: 0),
+                      reminderDate > now,
+                      reminderDate >= season.openingDate,
+                      reminderDate < season.endDate else {
                     continue
                 }
 
@@ -170,10 +174,10 @@ extension ContentView {
                 content.body = "Hol dir den Stempel für den \(badge.name), solange der Bergtag noch läuft."
                 content.sound = .default
 
-                if let trigger = calendarTrigger(for: reminderDate) {
+                if let trigger = calendarTrigger(for: reminderDate, in: season.calendar) {
                     requests.append(
                         UNNotificationRequest(
-                            identifier: "bergschein.stamp.\(badge.id)",
+                            identifier: "bergschein.\(season.id).stamp.\(badge.id)",
                             content: content,
                             trigger: trigger
                         )
@@ -183,13 +187,15 @@ extension ContentView {
         }
 
         if challengeNotificationsEnabled {
-            for challenge in challengeDefinitions {
-                guard let reminderDate = Calendar.current.date(
+            for challenge in season.challenges where challenge.shouldScheduleNotification {
+                guard let reminderDate = season.calendar.date(
                     bySettingHour: 10,
                     minute: 0,
                     second: 0,
                     of: challenge.date
-                ), reminderDate > now else {
+                ), reminderDate > now,
+                  reminderDate >= season.openingDate,
+                  reminderDate < season.endDate else {
                     continue
                 }
 
@@ -197,12 +203,15 @@ extension ContentView {
                 content.title = "Heutige Challenge"
                 content.body = challengeNotificationBody(for: challenge)
                 content.sound = .default
-                content.userInfo = ["destination": NotificationDestination.challenge.rawValue]
+                content.userInfo = [
+                    "destination": NotificationDestination.challenge.rawValue,
+                    "seasonID": season.id
+                ]
 
-                if let trigger = calendarTrigger(for: reminderDate) {
+                if let trigger = calendarTrigger(for: reminderDate, in: season.calendar) {
                     requests.append(
                         UNNotificationRequest(
-                            identifier: "bergschein.challenge.\(challenge.id)",
+                            identifier: "bergschein.\(season.id).challenge.\(challenge.id)",
                             content: content,
                             trigger: trigger
                         )
@@ -222,8 +231,8 @@ extension ContentView {
         return "Heute: \(challenge.title). Schau direkt im Challenge-Tab vorbei."
     }
 
-    func calendarTrigger(for date: Date) -> UNCalendarNotificationTrigger? {
-        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+    func calendarTrigger(for date: Date, in calendar: Calendar) -> UNCalendarNotificationTrigger? {
+        let components = calendar.dateComponents([.timeZone, .year, .month, .day, .hour, .minute], from: date)
         return UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
     }
 }

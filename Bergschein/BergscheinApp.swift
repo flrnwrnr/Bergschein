@@ -93,6 +93,9 @@ struct BergscheinApp: App {
     #endif
 
     init() {
+        #if DEBUG
+        precondition(SeasonCatalog.validate().isEmpty, "Ungültige Saisonkonfiguration: \(SeasonCatalog.validate().joined(separator: "; "))")
+        #endif
         configureNavigationTitleAppearance()
     }
 

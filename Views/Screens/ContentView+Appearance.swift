@@ -47,6 +47,9 @@ extension ContentView {
     }
 
     var statusGradientColors: [Color] {
+        if isShowingNextOpeningCountdown {
+            return [Color(.systemGray5), Color.accentColor.opacity(0.18)]
+        }
         if hasEventEnded {
             return [
                 Color(.systemGray5),

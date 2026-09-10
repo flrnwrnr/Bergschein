@@ -50,30 +50,16 @@ struct ContentView: View {
 
     let claimStartHour = 10
     let claimEndHour = 23
-    let raffleTermsVersion = "2026-04-02"
     let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     let locationRefreshClock = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
-    let badgeDefinitions = BadgeDefinition.all
-    let challengeDefinitions = DailyChallenge.all
     let overlayPresentationAnimation = Animation.spring(response: 0.42, dampingFraction: 0.82)
     let overlayDismissAnimation = Animation.easeInOut(duration: 0.22)
     let analyticsService = AnalyticsService()
 
     @StateObject var locationController = LocationController()
     @StateObject var tipJarStore = TipJarStore()
+    @StateObject var seasonProgressStore = SeasonProgressStore()
     @AppStorage("analyticsInstallID") var analyticsInstallID = ""
-    @AppStorage("unlockedBadgeIdentifiers") var unlockedBadgeIdentifiers = ""
-    @AppStorage("completedChallengeIdentifiers") var completedChallengeIdentifiers = ""
-    @AppStorage("tbDrinkRewardUnlocked") var tbDrinkRewardUnlocked = false
-    @AppStorage("tbDrinkRewardRedeemed") var tbDrinkRewardRedeemed = false
-    @AppStorage("zirkelRewardUnlocked") var zirkelRewardUnlocked = false
-    @AppStorage("zirkelRewardRedeemed") var zirkelRewardRedeemed = false
-    @AppStorage("bibOfferRewardUnlocked") var bibOfferRewardUnlocked = false
-    @AppStorage("bibOfferRewardRedeemed") var bibOfferRewardRedeemed = false
-    @AppStorage("hasJoinedRaffle") var hasJoinedRaffle = false
-    @AppStorage("raffleConsentTimestamp") var raffleConsentTimestamp = ""
-    @AppStorage("raffleContactEmail") var raffleContactEmail = ""
-    @AppStorage("raffleContactName") var raffleContactName = ""
     @AppStorage("testEventStartDay") var testEventStartDay = ""
     @AppStorage("dismissedMissedBadgeIdentifier") var dismissedMissedBadgeIdentifier = ""
     @AppStorage("dismissedMissedNoticeBadgeIdentifier") var dismissedMissedNoticeBadgeIdentifier = ""
@@ -86,6 +72,7 @@ struct ContentView: View {
     @AppStorage("challengeNotificationsEnabled") var challengeNotificationsEnabled = true
     @State var activeBadgeOverlay: BadgeOverlayPresentation?
     @State var activeChallengeRewardOverlay: ChallengeRewardOverlayPresentation?
+    @State var activeChallengeOverlay: ChallengeOverlayPresentation?
     @State var activeMissedDayAlert: MissedDayAlertPresentation?
     @State var activeLocationAccessRequiredOverlay: LocationAccessRequiredOverlayPresentation?
     @State var activeBadgeShareSheet: BadgeShareSheetItem?
@@ -93,6 +80,7 @@ struct ContentView: View {
     @State var useSimulatedDate = false
     @State var mapPosition = MapCameraPosition.automatic
     @State var selectedTab: AppTab = .checkIn
+    @State var selectedBadgeSeason: BadgeSeason = SeasonCatalog.all[0]
     @State var settingsRoute: SettingsRoute?
     @State var isShowingMapsPrompt = false
     @State var challengeMapsDestination: DailyChallenge?
@@ -173,7 +161,10 @@ struct ContentView: View {
         .onChange(of: locationController.authorizationStatus) { _, _ in
             updateLocationAccessRequiredOverlayState()
         }
-        .onChange(of: unlockedBadgeIdentifiers) { _, _ in
+        .onChange(of: activeSeasonProgress) { _, _ in
+            refreshScheduledNotifications()
+        }
+        .onChange(of: activeBadgeSeason) { _, _ in
             refreshScheduledNotifications()
         }
         .onChange(of: notificationsEnabled) { _, isEnabled in
@@ -225,6 +216,7 @@ struct ContentView: View {
                     onDismiss: {
                         withAnimation(overlayDismissAnimation) {
                             if activeBadgeOverlay.switchesToBadgeTab {
+                                selectedBadgeSeason = activeBadgeSeason
                                 selectedTab = .bergschein
                             }
                             self.activeBadgeOverlay = nil
@@ -236,6 +228,16 @@ struct ContentView: View {
                     presentation: activeLocationAccessRequiredOverlay,
                     darkForest: darkForest,
                     onOpenSettings: openAppSettings
+                )
+            } else if let activeChallengeOverlay {
+                ChallengeOverlayView(
+                    presentation: activeChallengeOverlay,
+                    darkForest: darkForest,
+                    onDismiss: {
+                        withAnimation(overlayDismissAnimation) {
+                            self.activeChallengeOverlay = nil
+                        }
+                    }
                 )
             } else if let activeChallengeRewardOverlay {
                 ChallengeRewardOverlayView(
@@ -274,6 +276,7 @@ struct ContentView: View {
             )
         }
         .onAppear {
+            selectedBadgeSeason = activeBadgeSeason
             ensureAnalyticsInstallID()
             refreshNotificationAuthorizationState()
             applyPendingNotificationDestinationIfNeeded()

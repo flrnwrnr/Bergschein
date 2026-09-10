@@ -8,6 +8,8 @@ import SwiftUI
 struct ChallengeView: View {
     let appBackgroundGradient: LinearGradient
     let darkForest: Color
+    let introduction: String
+    let challengePreview: DailyChallenge?
     let hasChallengeSeasonEnded: Bool
     let activeChallenge: DailyChallenge?
     let completedChallengesCount: Int
@@ -38,8 +40,8 @@ struct ChallengeView: View {
 
                 ScrollView {
                     VStack(spacing: 18) {
-                        if !hasChallengeSeasonEnded {
-                            Text(.init("Hier findest du an jedem Bergtag eine Challenge rund um das Thema Kirchweih und Erlangen. Du kannst nur an genau diesem Tag mitmachen und an ausgewählten Tagen eine **Belohnung** erhalten."))
+                        if !introduction.isEmpty && (!hasChallengeSeasonEnded || challengePreview != nil) {
+                            Text(.init(introduction))
                                 .font(.footnote.weight(.medium))
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(.secondary.opacity(0.9))
@@ -59,7 +61,7 @@ struct ChallengeView: View {
                             } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "gift.fill")
-                                    Text("Belohnungen")
+                                    Text("Belohnungen 2026")
                                 }
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
@@ -68,7 +70,24 @@ struct ChallengeView: View {
                             .controlSize(.large)
                         }
 
-                        if let activeChallenge {
+                        if let challengePreview {
+                            ChallengeCardView(
+                                challenge: challengePreview,
+                                isCompleted: false,
+                                showsButton: false,
+                                buttonTitle: "",
+                                canCheckIn: false,
+                                isWithinZone: false,
+                                darkForest: darkForest,
+                                distanceText: nil,
+                                directionAngle: nil,
+                                statusText: "",
+                                onLocationTap: challengePreview.centerCoordinate == nil ? nil : {
+                                    onLocationTap(challengePreview)
+                                },
+                                action: {}
+                            )
+                        } else if let activeChallenge {
                             ChallengeCardView(
                                 challenge: activeChallenge,
                                 isCompleted: isChallengeCompleted(activeChallenge),
@@ -170,7 +189,7 @@ private struct ChallengeRewardsView: View {
             .padding(.bottom, 24)
         }
         .background(appBackgroundGradient.ignoresSafeArea())
-        .navigationTitle("Belohnungen")
+        .navigationTitle("Belohnungen 2026")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Belohnung einlösen?", isPresented: $rewardRedeemAlertIsPresented) {
             Button("Abbrechen", role: .cancel) { }

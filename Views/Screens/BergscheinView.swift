@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct BergscheinView: View {
+    @Binding var selectedSeason: BadgeSeason
     let appBackgroundGradient: LinearGradient
     let badgeDefinitions: [BadgeDefinition]
     let unlockedBadges: Set<String>
@@ -31,6 +32,27 @@ struct BergscheinView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
+                        Menu {
+                            Picker("Jahr", selection: $selectedSeason) {
+                                ForEach(SeasonCatalog.all) { season in
+                                    Text(season.title).tag(season)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(selectedSeason.title)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            .font(.headline)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 44)
+                            .background(Color.accentColor.opacity(0.12), in: Capsule())
+                        }
+                        .accessibilityLabel("Bergschein-Jahr")
+                        .accessibilityValue(selectedSeason.title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                         ProgressSectionView(
                             badgeDefinitions: badgeDefinitions,
                             unlockedBadges: unlockedBadges

@@ -10,6 +10,32 @@ extension ContentView {
         return formatter
     }()
 
+    var raffleSeason: SeasonDefinition? {
+        if activeBadgeSeason.raffle != nil { return activeBadgeSeason }
+        return SeasonCatalog.all.last { $0.raffle != nil }
+    }
+
+    var raffleProgress: SeasonRaffleProgress {
+        guard let raffleSeason else { return .init() }
+        return seasonProgressStore.progress(for: raffleSeason.id).raffle
+    }
+
+    var hasJoinedRaffle: Bool { raffleProgress.hasJoined }
+    var raffleConsentTimestamp: String { raffleProgress.consentTimestamp }
+    var raffleContactEmail: String { raffleProgress.contactEmail }
+    var raffleContactName: String { raffleProgress.contactName }
+    var raffleTermsVersion: String { raffleSeason?.raffle?.termsVersion ?? "" }
+    var raffleUnlockedBadges: Set<String> {
+        guard let raffleSeason else { return [] }
+        let progress = seasonProgressStore.progress(for: raffleSeason.id)
+        return progress.unlockedBadgeIDs.intersection(Set(raffleSeason.badges.map(\.id)))
+    }
+    var raffleCompletedChallenges: Set<String> {
+        guard let raffleSeason else { return [] }
+        let progress = seasonProgressStore.progress(for: raffleSeason.id)
+        return progress.completedChallengeIDs.intersection(Set(raffleSeason.challenges.filter { !$0.isPlaceholder }.map(\.id)))
+    }
+
     var locationTab: some View {
         CheckInView(
             appBackgroundGradient: appBackgroundGradient,
@@ -20,6 +46,7 @@ extension ContentView {
             claimStatusText: claimStatusText,
             canClaimToday: canClaimToday,
             hasEventEnded: hasEventEnded,
+            isShowingNextOpeningCountdown: isShowingNextOpeningCountdown,
             hasOfficialOpeningStarted: hasOfficialOpeningStarted,
             currentBadgeImageName: currentBadge.flatMap(resolvedImageName(for:)),
             isCurrentBadgeUnlocked: isCurrentBadgeUnlocked,
@@ -84,24 +111,25 @@ extension ContentView {
         .onChange(of: currentBadge?.id) { _, _ in
             evaluateMissedDayNotice()
         }
-        .onChange(of: unlockedBadgeIdentifiers) { _, _ in
+        .onChange(of: activeSeasonProgress) { _, _ in
             evaluateMissedDayNotice()
         }
     }
 
     var badgesTab: some View {
         BergscheinView(
+            selectedSeason: $selectedBadgeSeason,
             appBackgroundGradient: appBackgroundGradient,
-            badgeDefinitions: badgeDefinitions,
-            unlockedBadges: unlockedBadges,
-            blockingMissedBadge: blockingMissedBadge,
-            hasLostLargeBergscheinChance: hasLostLargeBergscheinChance,
+            badgeDefinitions: displayedBadgeDefinitions,
+            unlockedBadges: displayedUnlockedBadges,
+            blockingMissedBadge: selectedBadgeSeason == activeBadgeSeason ? blockingMissedBadge : nil,
+            hasLostLargeBergscheinChance: displayedHasLostLargeBergscheinChance,
             dismissedMissedBadgeIdentifier: dismissedMissedBadgeIdentifier,
             dismissedMissedNoticeBadgeIdentifier: dismissedMissedNoticeBadgeIdentifier,
             darkForest: darkForest,
             overlayPresentationAnimation: overlayPresentationAnimation,
-            standardBadges: standardBadges(in:),
-            featuredBadge: featuredBadge(in:),
+            standardBadges: displayedStandardBadges(in:),
+            featuredBadge: displayedFeaturedBadge(in:),
             resolvedImageName: resolvedImageName(for:),
             onMissedBadgeTap: { blockedBadge in
                 activeMissedDayAlert = MissedDayAlertPresentation(missedBadge: blockedBadge)
@@ -279,7 +307,7 @@ extension ContentView {
                                 triggerSelectionHaptic()
                                 goToNextDay()
                             } label: {
-                                Label("Zum nächsten Tag", systemImage: "forward.fill")
+                                Label(useSimulatedDate ? "Zum nächsten Tag" : "Zum Anstich 2027", systemImage: "forward.fill")
                             }
 
                             DatePicker(
@@ -290,6 +318,7 @@ extension ContentView {
                                 ),
                                 displayedComponents: [.hourAndMinute]
                             )
+                            .environment(\.timeZone, BergscheinDateHelper.eventCalendar.timeZone)
 
                             LabeledContent {
                                 Text(simulatedTimeDisplayText)
@@ -300,7 +329,7 @@ extension ContentView {
                             HStack(spacing: 10) {
                                 Button {
                                     triggerSelectionHaptic()
-                                    if let anstichTime = Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date()) {
+                                    if let anstichTime = BergscheinDateHelper.eventCalendar.date(bySettingHour: 17, minute: 0, second: 0, of: Date()) {
                                         setSimulatedTime(from: anstichTime)
                                     }
                                 } label: {
@@ -364,7 +393,7 @@ extension ContentView {
                                 triggerWarningHaptic()
                                 resetProgress()
                             } label: {
-                                Label("Fortschritt zurücksetzen", systemImage: "arrow.counterclockwise")
+                                Label("Stempel \(activeBadgeSeason.title) zurücksetzen", systemImage: "arrow.counterclockwise")
                             }
                         }
                     }
@@ -669,9 +698,9 @@ extension ContentView {
 
         let installID = analyticsInstallID
         let termsVersion = raffleTermsVersion
-        let badgeCountAtConsent = unlockedBadges.count
-        let challengeCountAtConsent = completedChallengesCount
-        let isPerfectAtConsent = isPerfectSoFar(with: unlockedBadges)
+        let badgeCountAtConsent = raffleUnlockedBadges.count
+        let challengeCountAtConsent = raffleCompletedChallenges.count
+        let isPerfectAtConsent = isPerfectSoFar(with: raffleUnlockedBadges, in: raffleSeason)
 
         Task {
             let success = await analyticsService.submitRaffleEntry(
@@ -696,14 +725,17 @@ extension ContentView {
                     return
                 }
 
-                raffleContactEmail = trimmedEmail
-                raffleContactName = trimmedName
-                hasJoinedRaffle = true
                 let formatter = DateFormatter()
                 formatter.locale = Locale(identifier: "de_DE")
-                formatter.calendar = Calendar.current
+                formatter.calendar = raffleSeason?.calendar ?? BergscheinDateHelper.eventCalendar
+                formatter.timeZone = raffleSeason?.calendar.timeZone ?? BergscheinDateHelper.eventCalendar.timeZone
                 formatter.dateFormat = "dd.MM.yyyy"
-                raffleConsentTimestamp = formatter.string(from: Date())
+                if let raffleSeason {
+                    seasonProgressStore.setRaffle(
+                        SeasonRaffleProgress(hasJoined: true, consentTimestamp: formatter.string(from: currentDate), contactEmail: trimmedEmail, contactName: trimmedName),
+                        in: raffleSeason.id
+                    )
+                }
                 isRaffleEntrySheetPresented = false
                 triggerSuccessHaptic()
             }
@@ -711,17 +743,15 @@ extension ContentView {
     }
 
     var raffleParticipationDeadline: Date? {
-        guard let officialEventEndDate else {
-            return nil
-        }
-        return Calendar.current.date(byAdding: .day, value: 7, to: officialEventEndDate)
+        guard let raffleSeason, let raffle = raffleSeason.raffle else { return nil }
+        return raffle.participationDeadlineDate(in: raffleSeason.calendar)
     }
 
     var isRaffleParticipationOpen: Bool {
         guard let raffleParticipationDeadline else {
             return false
         }
-        return currentDate <= raffleParticipationDeadline
+        return currentDate < raffleParticipationDeadline
     }
 
     var raffleParticipationDeadlineLabel: String {
@@ -729,7 +759,10 @@ extension ContentView {
             return "8.6. 23:00"
         }
 
-        return Self.raffleDeadlineFormatter.string(from: raffleParticipationDeadline)
+        let formatter = Self.raffleDeadlineFormatter.copy() as! DateFormatter
+        formatter.calendar = raffleSeason?.calendar ?? BergscheinDateHelper.eventCalendar
+        formatter.timeZone = raffleSeason?.calendar.timeZone ?? BergscheinDateHelper.eventCalendar.timeZone
+        return formatter.string(from: raffleParticipationDeadline)
     }
 
     var raffleCalloutText: String {
@@ -740,32 +773,7 @@ extension ContentView {
     }
 
     var rafflePrizeItems: [RafflePrizeItem] {
-        [
-            RafflePrizeItem(
-                id: "raffle-1",
-                prizeSymbol: "",
-                prizeImageName: "zirkelcard",
-                sponsorImageName: "werbung_zirkel",
-                title: "1. Preis",
-                text: "Eine exklusive Zirkel-Card für ein Jahr kostenlosen Eintritt"
-            ),
-            RafflePrizeItem(
-                id: "raffle-2",
-                prizeSymbol: "",
-                prizeImageName: "trikot",
-                sponsorImageName: "werbung_tb",
-                title: "2. Preis",
-                text: "Ein TB-Trikot mit Unterschriften aller Regionalligaspielerinnen."
-            ),
-            RafflePrizeItem(
-                id: "raffle-3",
-                prizeSymbol: "",
-                prizeImageName: "doener",
-                sponsorImageName: "werbung_fresh",
-                title: "3. Preis",
-                text: "20€ Gutschein bei Eat fresh & tasty"
-            ),
-        ]
+        raffleSeason?.raffle?.prizes ?? []
     }
 
     var raffleTermsView: some View {
@@ -935,6 +943,8 @@ extension ContentView {
         ChallengeView(
             appBackgroundGradient: appBackgroundGradient,
             darkForest: darkForest,
+            introduction: challengeIntroduction,
+            challengePreview: challengePreview,
             hasChallengeSeasonEnded: hasChallengeSeasonEnded,
             activeChallenge: activeChallenge,
             completedChallengesCount: completedChallengesCount,
@@ -996,11 +1006,19 @@ extension ContentView {
     }
 }
 
-struct RafflePrizeItem: Identifiable {
+struct RafflePrizeItem: Identifiable, Hashable {
     let id: String
     let prizeSymbol: String
     let prizeImageName: String?
     let sponsorImageName: String
     let title: String
     let text: String
+}
+
+extension RafflePrizeItem {
+    static let legacy2026: [RafflePrizeItem] = [
+        RafflePrizeItem(id: "raffle-1", prizeSymbol: "", prizeImageName: "zirkelcard", sponsorImageName: "werbung_zirkel", title: "1. Preis", text: "Eine exklusive Zirkel-Card für ein Jahr kostenlosen Eintritt"),
+        RafflePrizeItem(id: "raffle-2", prizeSymbol: "", prizeImageName: "trikot", sponsorImageName: "werbung_tb", title: "2. Preis", text: "Ein TB-Trikot mit Unterschriften aller Regionalligaspielerinnen."),
+        RafflePrizeItem(id: "raffle-3", prizeSymbol: "", prizeImageName: "doener", sponsorImageName: "werbung_fresh", title: "3. Preis", text: "20€ Gutschein bei Eat fresh & tasty")
+    ]
 }

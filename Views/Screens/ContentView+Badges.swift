@@ -1,387 +1,148 @@
 import SwiftUI
 
 extension ContentView {
-    private static let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.locale = Locale(identifier: "de_DE")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
+    var activeBadgeSeason: SeasonDefinition { SeasonCatalog.displayedSeason(at: currentDate) }
+    var playableSeason: SeasonDefinition? { SeasonCatalog.playableSeason(at: currentDate) }
+    var activeSeasonPhase: SeasonPhase { activeBadgeSeason.phase(at: currentDate) }
+    var activeSeasonProgress: SeasonProgress { seasonProgressStore.progress(for: activeBadgeSeason.id) }
+    var badgeCalendar: Calendar { activeBadgeSeason.calendar }
+    var badgeDefinitions: [BadgeDefinition] { activeBadgeSeason.badges }
+    var challengeDefinitions: [DailyChallenge] { activeBadgeSeason.challenges }
+    var unlockedBadges: Set<String> { activeSeasonProgress.unlockedBadgeIDs.intersection(Set(badgeDefinitions.map(\.id))) }
 
     var canClaimToday: Bool {
-        !hasEventEnded &&
-        hasOfficialOpeningStarted &&
-        locationController.isInAllowedRegion &&
-        isWithinClaimWindow &&
-        currentBadge != nil &&
-        !isCurrentBadgeUnlocked
+        playableSeason?.id == activeBadgeSeason.id && hasOfficialOpeningStarted &&
+        locationController.isInAllowedRegion && isWithinClaimWindow &&
+        currentBadge != nil && !isCurrentBadgeUnlocked
     }
 
     var isWithinClaimWindow: Bool {
-        let hour = Calendar.current.component(.hour, from: currentDate)
+        let hour = badgeCalendar.component(.hour, from: currentDate)
         return hour >= claimStartHour && hour < claimEndHour
     }
 
     var claimStatusText: String {
-        if hasEventEnded {
-            return "Der Berg ist für dieses Jahr vorbei. Danke fürs Mitstempeln und bis zum nächsten Berg!"
+        if activeSeasonPhase == .preparation, let next = SeasonCatalog.nextKnownSeason(after: currentDate) {
+            return "Die nächste bekannte Saison ist \(next.title)."
         }
-        if unlockedBadges.count >= badgeDefinitions.count {
-            return "Alle 12 Stempel sind bereits freigeschaltet."
+        if isShowingNextOpeningCountdown {
+            return "Am \(activeBadgeSeason.openingDate.formatted(.dateTime.day().month(.wide).year().hour().minute())) ist wieder Anstich in Erlangen!"
         }
-        if let officialOpeningDate, currentDate < officialOpeningDate {
-            return "Bald ist es soweit. Am 21.05.2026 um 17:00 Uhr ist endlich Anstich!"
-        }
-        if currentBadge == nil {
-            return "Heute gibt es keinen Stempel mehr."
-        }
-        if !isWithinClaimWindow {
-            return "Der Berg hat zu. Stempel können täglich nur zwischen 10:00 und 23:00 Uhr freigeschaltet werden."
-        }
-        if isCurrentBadgeUnlocked {
-            return "Du hast dir den Stempel für heute geholt!"
-        }
-        if !locationController.isInAllowedRegion {
-            return "Komm jetzt hoch und hol dir den Stempel für heute!"
-        }
-        if currentBadge != nil {
-            return "Du bist vor Ort. Jetzt kannst du dir den Stempel für heute abholen!"
-        }
-        return "Heute ist kein Stempel verfügbar."
+        if hasEventEnded { return "Die Stempelsaison \(activeBadgeSeason.title) ist abgeschlossen. Deine gesammelten Stempel bleiben im Bergschein erhalten." }
+        if unlockedBadges.count >= badgeDefinitions.count, !badgeDefinitions.isEmpty { return "Alle \(badgeDefinitions.count) Stempel sind bereits freigeschaltet." }
+        if let officialOpeningDate, currentDate < officialOpeningDate { return "Bald ist es soweit. Am \(badgeDefinitions.first?.name ?? "") \(activeBadgeSeason.title) um 17:00 Uhr ist endlich Anstich!" }
+        if currentBadge == nil { return "Heute gibt es keinen Stempel mehr." }
+        if !isWithinClaimWindow { return "Der Berg hat zu. Stempel können täglich nur zwischen 10:00 und 23:00 Uhr freigeschaltet werden." }
+        if isCurrentBadgeUnlocked { return "Du hast dir den Stempel für heute geholt!" }
+        if !locationController.isInAllowedRegion { return "Komm jetzt hoch und hol dir den Stempel für heute!" }
+        return "Du bist vor Ort. Jetzt kannst du dir den Stempel für heute abholen!"
     }
 
-    var unlockedBadges: Set<String> {
-        Set(
-            unlockedBadgeIdentifiers
-                .split(separator: ",")
-                .map(String.init)
-        )
-    }
+    var displayedBadgeDefinitions: [BadgeDefinition] { selectedBadgeSeason.badges }
+    var displayedSeasonProgress: SeasonProgress { seasonProgressStore.progress(for: selectedBadgeSeason.id) }
+    var displayedUnlockedBadges: Set<String> { displayedSeasonProgress.unlockedBadgeIDs.intersection(Set(displayedBadgeDefinitions.map(\.id))) }
+    var displayedHasLostLargeBergscheinChance: Bool { selectedBadgeSeason.endDate <= currentDate && displayedUnlockedBadges.count < displayedBadgeDefinitions.count }
+
+    func displayedStandardBadges(in category: BadgeCategory) -> [BadgeDefinition] { displayedBadgeDefinitions.filter { $0.category == category && $0.subtitle == nil } }
+    func displayedFeaturedBadge(in category: BadgeCategory) -> BadgeDefinition? { displayedBadgeDefinitions.first { $0.category == category && $0.subtitle != nil } }
 
     var currentStreak: Int {
-        let currentBadgeIndex = currentBadge.flatMap { badge in
-            badgeDefinitions.firstIndex(where: { $0.id == badge.id })
-        }
-        let anchorIndex = {
-            if let currentBadgeIndex {
-                let currentBadge = badgeDefinitions[currentBadgeIndex]
-                if unlockedBadges.contains(currentBadge.id) {
-                    return currentBadgeIndex
-                }
-                return max(currentBadgeIndex - 1, 0)
-            }
-            return badgeDefinitions.indices.last ?? 0
-        }()
-
-        guard badgeDefinitions.indices.contains(anchorIndex) else {
-            return 0
-        }
-
+        guard let currentBadge, let index = badgeDefinitions.firstIndex(where: { $0.id == currentBadge.id }) else { return 0 }
         var streak = 0
-        for index in stride(from: anchorIndex, through: 0, by: -1) {
-            let badge = badgeDefinitions[index]
-            if unlockedBadges.contains(badge.id) {
-                streak += 1
-            } else {
-                break
-            }
+        for badge in badgeDefinitions[...index].reversed() {
+            guard unlockedBadges.contains(badge.id) else { break }
+            streak += 1
         }
         return streak
     }
 
-    var hasLostLargeBergscheinChance: Bool {
-        if blockingMissedBadge != nil {
-            return true
-        }
-
-        return hasEventEnded && unlockedBadges.count < badgeDefinitions.count
-    }
+    var hasLostLargeBergscheinChance: Bool { blockingMissedBadge != nil || (hasEventEnded && unlockedBadges.count < badgeDefinitions.count) }
 
     var blockingMissedBadge: BadgeDefinition? {
-        guard let currentBadgeIndex = currentBadge.flatMap({ badge in
-            badgeDefinitions.firstIndex(where: { $0.id == badge.id })
-        }) else {
-            return nil
-        }
-
-        guard currentBadgeIndex > 0 else {
-            return nil
-        }
-
-        for index in 0..<currentBadgeIndex {
-            let badge = badgeDefinitions[index]
-            if !unlockedBadges.contains(badge.id) {
-                return badge
-            }
-        }
-
-        return nil
+        guard let currentBadge, let currentIndex = badgeDefinitions.firstIndex(where: { $0.id == currentBadge.id }), currentIndex > 0 else { return nil }
+        return badgeDefinitions[..<currentIndex].first { !unlockedBadges.contains($0.id) }
     }
 
     var currentBadge: BadgeDefinition? {
-        guard let eventStartDate else {
-            return nil
-        }
-
-        if hasEventEnded {
-            return nil
-        }
-
-        if let officialOpeningDate, currentDate < officialOpeningDate {
-            return nil
-        }
-
-        let startDate = Calendar.current.startOfDay(for: eventStartDate)
-        let activeDate = Calendar.current.startOfDay(for: currentDate)
-        let dayOffset = Calendar.current.dateComponents([.day], from: startDate, to: activeDate).day ?? -1
-
-        guard badgeDefinitions.indices.contains(dayOffset) else {
-            return nil
-        }
-
-        return badgeDefinitions[dayOffset]
+        guard activeSeasonPhase == .active, currentDate >= activeBadgeSeason.openingDate else { return nil }
+        let startDate = badgeCalendar.startOfDay(for: activeBadgeSeason.openingDate)
+        let activeDate = badgeCalendar.startOfDay(for: currentDate)
+        let offset = badgeCalendar.dateComponents([.day], from: startDate, to: activeDate).day ?? -1
+        guard badgeDefinitions.indices.contains(offset) else { return nil }
+        return badgeDefinitions[offset]
     }
 
-    var isCurrentBadgeUnlocked: Bool {
-        guard let currentBadge else {
-            return false
-        }
-        return unlockedBadges.contains(currentBadge.id)
-    }
-
-    var currentBadgeLabel: String {
-        currentBadge?.name ?? "Keiner"
-    }
-
-    var defaultEventStartDate: Date? {
-        var components = Calendar.current.dateComponents([.year], from: currentDate)
-        components.month = 5
-        components.day = 21
-        guard let eventDate = Calendar.current.date(from: components) else {
-            return nil
-        }
-        return Calendar.current.startOfDay(for: eventDate)
-    }
-
-    var eventStartDate: Date? {
-        if !useSimulatedDate {
-            return defaultEventStartDate
-        }
-
-        if testEventStartDay.isEmpty {
-            return defaultEventStartDate
-        }
-
-        return Self.dayFormatter.date(from: testEventStartDay) ?? defaultEventStartDate
-    }
-
-    var officialOpeningDate: Date? {
-        guard let eventStartDate else {
-            return nil
-        }
-
-        return Calendar.current.date(
-            bySettingHour: 17,
-            minute: 0,
-            second: 0,
-            of: eventStartDate
-        )
-    }
-
-    var officialEventEndDate: Date? {
-        guard let eventStartDate else {
-            return nil
-        }
-
-        guard let juneFirst = Calendar.current.date(byAdding: .day, value: badgeDefinitions.count - 1, to: eventStartDate) else {
-            return nil
-        }
-
-        return Calendar.current.date(
-            bySettingHour: 23,
-            minute: 0,
-            second: 0,
-            of: juneFirst
-        )
-    }
-
-    var hasOfficialOpeningStarted: Bool {
-        guard let officialOpeningDate else {
-            return false
-        }
-
-        return currentDate >= officialOpeningDate
-    }
-
-    var hasEventEnded: Bool {
-        guard let officialEventEndDate else {
-            return false
-        }
-
-        return currentDate >= officialEventEndDate
-    }
+    var isCurrentBadgeUnlocked: Bool { currentBadge.map { unlockedBadges.contains($0.id) } ?? false }
+    var currentBadgeLabel: String { currentBadge?.name ?? "Keiner" }
+    var defaultEventStartDate: Date? { activeBadgeSeason.openingDate }
+    var eventStartDate: Date? { activeBadgeSeason.openingDate }
+    var officialOpeningDate: Date? { activeBadgeSeason.openingDate }
+    var officialEventEndDate: Date? { activeBadgeSeason.endDate }
+    var hasOfficialOpeningStarted: Bool { currentDate >= activeBadgeSeason.openingDate }
+    var hasEventEnded: Bool { currentDate >= activeBadgeSeason.endDate }
 
     var officialOpeningCountdownText: String {
-        guard let officialOpeningDate else {
-            return ""
-        }
-
-        return BergscheinDateHelper.countdownText(from: currentDate, to: officialOpeningDate)
+        guard let target = SeasonCatalog.nextKnownSeason(after: currentDate)?.openingDate ?? officialOpeningDate else { return "" }
+        return BergscheinDateHelper.countdownText(from: currentDate, to: target, calendar: badgeCalendar)
     }
 
     var checkInHeadlineLabel: String {
-        if hasEventEnded {
-            return "Vorbei"
-        }
-        if let officialOpeningDate, currentDate < officialOpeningDate {
-            return "Noch"
-        }
-
+        if isShowingNextOpeningCountdown { return "Noch bis zum Anstich \(activeBadgeSeason.title)" }
+        if hasEventEnded { return "Vorbei" }
+        if currentDate < activeBadgeSeason.openingDate { return "Noch" }
         return "Heute"
     }
 
     var checkInHeadlineValue: String {
-        if hasEventEnded {
-            return "Das war's\nfür dieses Jahr"
-        }
-        if let officialOpeningDate, currentDate < officialOpeningDate {
-            return officialOpeningCountdownText
-        }
-
+        if isShowingNextOpeningCountdown || currentDate < activeBadgeSeason.openingDate { return officialOpeningCountdownText }
+        if hasEventEnded { return "Stempelsaison \(activeBadgeSeason.title)\nabgeschlossen" }
         return currentBadge?.name ?? "Kein Stempeltag"
     }
 
-    func ensureTestEventStartDay() {
-        guard testEventStartDay.isEmpty else {
-            return
-        }
-        testEventStartDay = Self.dayFormatter.string(from: defaultEventStartDate ?? Calendar.current.startOfDay(for: Date()))
-    }
+    var isShowingNextOpeningCountdown: Bool { activeSeasonPhase == .preview }
+    func ensureTestEventStartDay() {}
+    var testEventStartDate: Date { activeBadgeSeason.openingDate }
 
     func claimBadge() async {
-        guard canClaimToday, let currentBadge else {
-            return
-        }
-
-        var updatedBadges = unlockedBadges
-        updatedBadges.insert(currentBadge.id)
-        unlockedBadgeIdentifiers = updatedBadges.sorted().joined(separator: ",")
-
-        let badgeCountAfterEvent = updatedBadges.count
-        let perfectSoFar = isPerfectSoFar(with: updatedBadges)
-        let challengeCountAfterEvent = completedChallengesCount
-        let installID = analyticsInstallID
-        let eventDate = currentDate
-        await analyticsService.track(
-            eventType: .badgeClaimed,
-            installID: installID,
-            eventDate: eventDate,
-            badgeCountAfterEvent: badgeCountAfterEvent,
-            isPerfectSoFar: perfectSoFar,
-            challengeCountAfterEvent: challengeCountAfterEvent
-        )
-
-        let hasMissedDay = blockingMissedBadge != nil
-        let isFinalDayBadge = currentBadge.id == "06-01"
-        let subtitleOverride: String? = hasMissedDay && isFinalDayBadge ? "Letzter Bergtag" : nil
-        let messageOverride: String? = {
-            guard hasMissedDay else {
-                return nil
-            }
-            if isFinalDayBadge {
-                return "Stark! Du hast dir den Stempel für den letzten Bergtag geholt."
-            }
-            return "Stark! Du hast dir den Stempel für heute geholt."
-        }()
-
+        guard canClaimToday, let currentBadge else { return }
+        seasonProgressStore.unlockBadge(currentBadge.id, in: activeBadgeSeason.id)
+        let updatedBadges = unlockedBadges.union([currentBadge.id])
+        await analyticsService.track(eventType: .badgeClaimed, installID: analyticsInstallID, eventDate: currentDate, badgeCountAfterEvent: updatedBadges.count, isPerfectSoFar: isPerfectSoFar(with: updatedBadges), challengeCountAfterEvent: completedChallengesCount, seasonID: activeBadgeSeason.id)
+        let missed = blockingMissedBadge != nil
+        let final = currentBadge.id == badgeDefinitions.last?.id
         withAnimation(overlayPresentationAnimation) {
-            activeBadgeOverlay = BadgeOverlayPresentation(
-                badge: currentBadge,
-                title: "Stempel geholt!",
-                buttonTitle: "Weiter",
-                switchesToBadgeTab: true,
-                subtitleOverride: subtitleOverride,
-                messageOverride: messageOverride
-            )
+            activeBadgeOverlay = BadgeOverlayPresentation(badge: currentBadge, title: "Stempel geholt!", buttonTitle: "Weiter", switchesToBadgeTab: true, subtitleOverride: missed && final ? "Letzter Bergtag" : nil, messageOverride: missed ? (final ? "Stark! Du hast dir den Stempel für den letzten Bergtag geholt." : "Stark! Du hast dir den Stempel für heute geholt.") : nil)
         }
     }
 
     func evaluateMissedDayNotice() {
         guard let blockingMissedBadge else {
-            withAnimation(overlayDismissAnimation) {
-                activeMissedDayAlert = nil
-            }
+            withAnimation(overlayDismissAnimation) { activeMissedDayAlert = nil }
             dismissedMissedBadgeIdentifier = ""
             return
         }
-
-        guard dismissedMissedBadgeIdentifier != blockingMissedBadge.id else {
-            return
-        }
-
-        withAnimation(overlayPresentationAnimation) {
-            activeMissedDayAlert = MissedDayAlertPresentation(missedBadge: blockingMissedBadge)
-        }
+        guard dismissedMissedBadgeIdentifier != blockingMissedBadge.id else { return }
+        withAnimation(overlayPresentationAnimation) { activeMissedDayAlert = MissedDayAlertPresentation(missedBadge: blockingMissedBadge) }
     }
 
-    func badges(in category: BadgeCategory) -> [BadgeDefinition] {
-        badgeDefinitions.filter { $0.category == category }
-    }
-
-    func standardBadges(in category: BadgeCategory) -> [BadgeDefinition] {
-        let badges = badges(in: category)
-        guard category == .profi, let lastBadge = badges.last, lastBadge.subtitle != nil else {
-            return badges
-        }
-        return Array(badges.dropLast())
-    }
-
-    func featuredBadge(in category: BadgeCategory) -> BadgeDefinition? {
-        let badges = badges(in: category)
-        guard category == .profi, let lastBadge = badges.last, lastBadge.subtitle != nil else {
-            return nil
-        }
-        return lastBadge
-    }
+    func badges(in category: BadgeCategory) -> [BadgeDefinition] { badgeDefinitions.filter { $0.category == category } }
+    func standardBadges(in category: BadgeCategory) -> [BadgeDefinition] { badges(in: category).filter { $0.subtitle == nil } }
+    func featuredBadge(in category: BadgeCategory) -> BadgeDefinition? { badges(in: category).first { $0.subtitle != nil } }
 
     func resolvedImageName(for badge: BadgeDefinition) -> String? {
-        if badge.id == "06-01", hasLostLargeBergscheinChance {
-            return "badge12b"
-        }
-        return badge.imageName
+        guard badge.id == displayedBadgeDefinitions.last?.id, displayedHasLostLargeBergscheinChance else { return badge.imageName }
+        return selectedBadgeSeason.id == "bergschein-2026" ? "badge12b" : badge.imageName
     }
 
-    func isPerfectSoFar(with badges: Set<String>) -> Bool {
-        guard !badgeDefinitions.isEmpty else {
-            return true
-        }
-
-        let currentBadgeIndex = currentBadge.flatMap { badge in
-            badgeDefinitions.firstIndex(where: { $0.id == badge.id })
-        }
-
-        let anchorIndex: Int
-        if let currentBadgeIndex {
-            let todayBadge = badgeDefinitions[currentBadgeIndex]
-            if badges.contains(todayBadge.id) {
-                anchorIndex = currentBadgeIndex
-            } else {
-                anchorIndex = max(currentBadgeIndex - 1, 0)
-            }
+    func isPerfectSoFar(with badges: Set<String>, in season: SeasonDefinition? = nil) -> Bool {
+        let definitions = season?.badges ?? badgeDefinitions
+        guard !definitions.isEmpty else { return true }
+        let visible: [BadgeDefinition]
+        if let badge = currentBadge, let index = definitions.firstIndex(where: { $0.id == badge.id }) {
+            visible = Array(definitions[...index])
         } else {
-            anchorIndex = badgeDefinitions.count - 1
+            visible = definitions
         }
-
-        guard anchorIndex >= 0 else {
-            return true
-        }
-
-        for index in 0...anchorIndex {
-            if !badges.contains(badgeDefinitions[index].id) {
-                return false
-            }
-        }
-        return true
+        return visible.allSatisfy { badges.contains($0.id) }
     }
 }

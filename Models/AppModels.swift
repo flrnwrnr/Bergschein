@@ -40,13 +40,14 @@ struct BadgeDefinition: Identifiable {
     let sponsorLabel: String?
     let sponsorLogoName: String?
     let sponsorURL: URL?
+    var seasonDayIndex: Int? = nil
 
     var overlayTitle: String {
         "Tag \(displayDayIndex)"
     }
 
     var displayDayIndex: Int {
-        Self.all.firstIndex(where: { $0.id == id }).map { $0 + 1 } ?? 0
+        seasonDayIndex ?? Self.all.firstIndex(where: { $0.id == id }).map { $0 + 1 } ?? 0
     }
 
     static let all: [BadgeDefinition] = [
@@ -63,6 +64,24 @@ struct BadgeDefinition: Identifiable {
         BadgeDefinition(id: "05-31", name: "31.05.", shortLabel: "31.05.", month: 5, day: 31, category: .profi, subtitle: nil, imageName: "badge11", overlayMessage: "Vorletzter Stempel. Viel näher kannst du dem Finale kaum noch kommen.", sponsorLabel: nil, sponsorLogoName: nil, sponsorURL: nil),
         BadgeDefinition(id: "06-01", name: "01.06.", shortLabel: "01.06.", month: 6, day: 1, category: .profi, subtitle: "Großer Bergschein", imageName: "badge12", overlayMessage: "Geschafft. Der große Bergschein gehört jetzt dir.", sponsorLabel: "Gesponsert vom", sponsorLogoName: "logo_erich", sponsorURL: URL(string: "https://www.erich-keller.net"))
     ]
+
+    /// Preview metadata for 2027. The 2026 artwork is reused temporarily until
+    /// the new season's motifs are available; claims remain disabled until the
+    /// finalized content is released.
+    static let preview2027: [BadgeDefinition] = (0..<12).map { index in
+        let day = 13 + index
+        let label = String(format: "%02d.05.", day)
+        return BadgeDefinition(
+            id: "2027-05-\(day)", name: label, shortLabel: label,
+            month: 5, day: day,
+            category: index < 3 ? .netterAnfang : (index < 7 ? .solideLeistung : .profi),
+            subtitle: index == 11 ? "Großer Bergschein" : nil,
+            imageName: "badge2027_\(index + 1)",
+            overlayMessage: "Der Stempel für die kommende Saison wird noch veröffentlicht.",
+            sponsorLabel: nil, sponsorLogoName: nil, sponsorURL: nil,
+            seasonDayIndex: index + 1
+        )
+    }
 }
 
 struct BadgeOverlayPresentation {
@@ -101,6 +120,9 @@ struct ChallengeReward: Identifiable {
     let details: String
     let infoURL: URL?
     let redemptionHint: String
+    let redemptionStartsAt: SeasonMoment?
+    let redemptionEndsAt: SeasonMoment?
+    let redemptionURL: URL?
 
     static let tbBasketballDrink = ChallengeReward(
         id: "tb-basketball-drink",
@@ -110,7 +132,8 @@ struct ChallengeReward: Identifiable {
         subtitle: "TB Erlangen Basketball",
         details: "Du erhältst ein Freigetränk bei einem Damen 1 oder Herren 1 Spiel deiner Wahl.",
         infoURL: URL(string: "https://www.instagram.com/tberlangenbasketball/"),
-        redemptionHint: "Hinweis: Der Einlösen-Button darf nur einmal von der Getränkeausgabe verwendet werden."
+        redemptionHint: "Hinweis: Der Einlösen-Button darf nur einmal von der Getränkeausgabe verwendet werden.",
+        redemptionStartsAt: nil, redemptionEndsAt: nil, redemptionURL: nil
     )
 
     static let zirkelFreeEntry = ChallengeReward(
@@ -121,7 +144,10 @@ struct ChallengeReward: Identifiable {
         subtitle: "Der Zirkel",
         details: "Du erhältst einen kostenlosen Eintritt in den Zirkel in den Monaten Juni oder Juli 2026.",
         infoURL: URL(string: "https://zirkel-club.de"),
-        redemptionHint: "Hinweis: Der Einlösen-Button kann nur einmal und nur im Juni/Juli 2026 verwendet werden."
+        redemptionHint: "Hinweis: Der Einlösen-Button kann nur einmal und nur im Juni/Juli 2026 verwendet werden.",
+        redemptionStartsAt: SeasonMoment(year: 2026, month: 6, day: 1, hour: 0, minute: 0),
+        redemptionEndsAt: SeasonMoment(year: 2026, month: 8, day: 1, hour: 0, minute: 0),
+        redemptionURL: nil
     )
 
     static let bibOfferCode = ChallengeReward(
@@ -132,7 +158,9 @@ struct ChallengeReward: Identifiable {
         subtitle: "Study Bro",
         details: "Du erhältst über den Promo Code ein kostenloses Jahresabo für die App Study Bro.",
         infoURL: nil,
-        redemptionHint: "Hinweis: Der Einlösen-Button öffnet den Promo-Code-Link nur einmal und kann danach nicht erneut verwendet werden."
+        redemptionHint: "Hinweis: Der Einlösen-Button öffnet den Promo-Code-Link nur einmal und kann danach nicht erneut verwendet werden.",
+        redemptionStartsAt: nil, redemptionEndsAt: nil,
+        redemptionURL: URL(string: "https://apps.apple.com/redeem?ctx=offercodes&id=6752996931&code=BERGSCHEIN")
     )
 }
 
@@ -156,10 +184,31 @@ struct DailyChallenge: Identifiable {
     let centerCoordinate: CLLocationCoordinate2D?
     let radius: CLLocationDistance?
     let requiresLocationCheckIn: Bool
+    /// The season catalog resolves this stable ID to its reward. This replaces
+    /// date-based reward rules in the view layer.
+    var rewardID: String? = nil
+    var isPlaceholder = false
+
+    var shouldScheduleNotification: Bool { !isPlaceholder }
+
+    static let placeholders2027: [DailyChallenge] = (13...24).map { day in
+        DailyChallenge(
+            id: "2027-05-\(day)",
+            icon: day == 13 ? "🎉" : "",
+            title: day == 13 ? "Start in den Berg" : "Challenge folgt",
+            text: day == 13 ? "Checke zum Auftakt zwischen 16:00 und 18:00 Uhr an der T-Kreuzung ein und starte in die Bergkirchweih 2027." : "",
+            locationName: day == 13 ? "T-Kreuzung" : "", month: 5, day: day, year: 2027,
+            startHour: day == 13 ? 16 : nil, startMinute: day == 13 ? 0 : nil,
+            endHour: day == 13 ? 18 : nil, endMinute: day == 13 ? 0 : nil,
+            centerCoordinate: day == 13 ? CLLocationCoordinate2D(latitude: 49.60756, longitude: 11.00512) : nil,
+            radius: day == 13 ? 50 : nil, requiresLocationCheckIn: day == 13,
+            isPlaceholder: day != 13
+        )
+    }
 
     var date: Date {
         let components = DateComponents(year: year, month: month, day: day)
-        return Calendar.current.date(from: components) ?? .now
+        return BergscheinDateHelper.eventCalendar.date(from: components) ?? .now
     }
 
     var startDate: Date? {
@@ -167,7 +216,7 @@ struct DailyChallenge: Identifiable {
             return nil
         }
 
-        return Calendar.current.date(
+        return BergscheinDateHelper.eventCalendar.date(
             bySettingHour: startHour,
             minute: startMinute,
             second: 0,
@@ -180,7 +229,7 @@ struct DailyChallenge: Identifiable {
             return nil
         }
 
-        let sameDayEndDate = Calendar.current.date(
+        let sameDayEndDate = BergscheinDateHelper.eventCalendar.date(
             bySettingHour: endHour,
             minute: endMinute,
             second: 0,
@@ -192,7 +241,7 @@ struct DailyChallenge: Identifiable {
         }
 
         if spansMidnight {
-            return Calendar.current.date(byAdding: .day, value: 1, to: sameDayEndDate)
+            return BergscheinDateHelper.eventCalendar.date(byAdding: .day, value: 1, to: sameDayEndDate)
         }
 
         return sameDayEndDate
@@ -239,14 +288,14 @@ struct DailyChallenge: Identifiable {
 
     static let all: [DailyChallenge] = [
         DailyChallenge(id: "2026-05-21", icon: "🥳", title: "Anstich an der T-Kreuzung", text: "Checke zwischen 16:00 und 18:00 Uhr am sogenannten T zum Anstich ein.", locationName: "T-Kreuzung", month: 5, day: 21, year: 2026, startHour: 16, startMinute: 0, endHour: 18, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60756, longitude: 11.00512), radius: 50, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-22", icon: "🪩", title: "Afterberg im Zirkel", text: "Checke am 22.05. zwischen 21:00 und 23:59 Uhr im Zirkel ein und feier im Klassiker.", locationName: "Zirkel", month: 5, day: 22, year: 2026, startHour: 20, startMinute: 0, endHour: 23, endMinute: 59, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60240, longitude: 11.00360), radius: 100, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-22", icon: "🪩", title: "Afterberg im Zirkel", text: "Checke am 22.05. zwischen 21:00 und 23:59 Uhr im Zirkel ein und feier im Klassiker.", locationName: "Zirkel", month: 5, day: 22, year: 2026, startHour: 20, startMinute: 0, endHour: 23, endMinute: 59, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60240, longitude: 11.00360), radius: 100, requiresLocationCheckIn: true, rewardID: ChallengeReward.zirkelFreeEntry.id),
         DailyChallenge(id: "2026-05-23", icon: "🎡", title: "Pflichtfahrt im Riesenrad", text: "Dreh am 23.05. zwischen 10:00 und 23:00 Uhr die Pflichtfahrt im Riesenrad, die zu jedem Berg einfach dazugehört, und hake die Challenge direkt vor Ort ab.", locationName: "Riesenrad", month: 5, day: 23, year: 2026, startHour: 10, startMinute: 0, endHour: 23, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60714, longitude: 11.00681), radius: 100, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-24", icon: "🥨", title: "Frühschoppen am Erich Keller", text: "Mach am 24.05. einen Abstecher zum Frühschoppen am Erich Keller und hake die Challenge direkt vor Ort ab.", locationName: "Erich Keller", month: 5, day: 24, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60771, longitude: 11.00417), radius: 70, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-25", icon: "🏀", title: "Ballen am BMS", text: "Mach am 25.05. einen Abstecher zum BMS, werfe dort ein paar Körbe, und hake die Challenge direkt vor Ort ab.", locationName: "BMS", month: 5, day: 25, year: 2026, startHour: 10, startMinute: 0, endHour: 18, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60266, longitude: 11.02082), radius: 200, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-25", icon: "🏀", title: "Ballen am BMS", text: "Mach am 25.05. einen Abstecher zum BMS, werfe dort ein paar Körbe, und hake die Challenge direkt vor Ort ab.", locationName: "BMS", month: 5, day: 25, year: 2026, startHour: 10, startMinute: 0, endHour: 18, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60266, longitude: 11.02082), radius: 200, requiresLocationCheckIn: true, rewardID: ChallengeReward.tbBasketballDrink.id),
         DailyChallenge(id: "2026-05-26", icon: "🌿", title: "Erholsamer Besuch im Aromagarten", text: "Mach am 26.05. einen erholsamen Abstecher in den Aromagarten und hake die Challenge direkt vor Ort ab.", locationName: "Aromagarten", month: 5, day: 26, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60268, longitude: 11.01638), radius: 120, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-27", icon: "🌳", title: "Besuch im Schlossgarten", text: "Mach am 27.05. einen Besuch in Erlangens Highlight, dem Schlossgarten, und hake die Challenge direkt vor Ort ab.", locationName: "Schlossgarten", month: 5, day: 27, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59801, longitude: 11.00525), radius: 120, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-28", icon: "🏁", title: "Auto-Scooter mit den Kids", text: "Fahr am 28.05. zwischen 10:00 und 23:00 Uhr eine Runde Auto-Scooter mit den Kids und hake die Challenge direkt vor Ort ab.", locationName: "Auto-Scooter", month: 5, day: 28, year: 2026, startHour: 10, startMinute: 0, endHour: 23, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60709, longitude: 11.00758), radius: 100, requiresLocationCheckIn: true),
-        DailyChallenge(id: "2026-05-29", icon: "📚", title: "Besuch in der Bib", text: "Geh am 29.05. mal wieder in die Unibib, damit du das Lernen nicht ganz vergisst 😉", locationName: "Unibib", month: 5, day: 29, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59661, longitude: 11.00713), radius: 120, requiresLocationCheckIn: true),
+        DailyChallenge(id: "2026-05-29", icon: "📚", title: "Besuch in der Bib", text: "Geh am 29.05. mal wieder in die Unibib, damit du das Lernen nicht ganz vergisst 😉", locationName: "Unibib", month: 5, day: 29, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59661, longitude: 11.00713), radius: 120, requiresLocationCheckIn: true, rewardID: ChallengeReward.bibOfferCode.id),
         DailyChallenge(id: "2026-05-30", icon: "⛪️", title: "Check-in am Kirchenplatz", text: "Hol dir am 30.05. am Kirchenplatz kurz den dringend notwendigen Segen ab und hake die Challenge direkt vor Ort ab.", locationName: "Kirchenplatz", month: 5, day: 30, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60128, longitude: 11.00814), radius: 100, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-05-31", icon: "🌳", title: "Treffen am Bohlenplatz", text: "Mach am 31.05. einen Abstecher zum Bohlenplatz im Herzen Erlangens und hake die Challenge direkt vor Ort ab.", locationName: "Bohlenplatz", month: 5, day: 31, year: 2026, startHour: 12, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.59662, longitude: 11.01111), radius: 100, requiresLocationCheckIn: true),
         DailyChallenge(id: "2026-06-01", icon: "👋", title: "Ein letzter Besuch", text: "Komm am 01.06. noch ein letztes Mal hoch und hake die finale Challenge direkt vor Ort ab.", locationName: "T-Kreuzung", month: 6, day: 1, year: 2026, startHour: 10, startMinute: 0, endHour: 20, endMinute: 0, centerCoordinate: CLLocationCoordinate2D(latitude: 49.60756, longitude: 11.00512), radius: 50, requiresLocationCheckIn: true)

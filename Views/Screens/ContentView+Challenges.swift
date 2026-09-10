@@ -2,302 +2,134 @@ import SwiftUI
 
 extension ContentView {
     var challengeRewardsByID: [String: ChallengeReward] {
-        [
-            ChallengeReward.zirkelFreeEntry.id: .zirkelFreeEntry,
-            ChallengeReward.tbBasketballDrink.id: .tbBasketballDrink,
-            ChallengeReward.bibOfferCode.id: .bibOfferCode,
-        ]
+        Dictionary(uniqueKeysWithValues: activeBadgeSeason.rewards.map { ($0.id, $0) })
     }
 
+    /// Rewards remain accessible for every archived season that earned them;
+    /// the active tab adds the current season's rewards without erasing 2026.
     var unlockedChallengeRewards: [ChallengeReward] {
-        var rewards: [ChallengeReward] = []
-        if zirkelRewardUnlocked {
-            rewards.append(.zirkelFreeEntry)
+        SeasonCatalog.all.flatMap { season in
+            let progress = seasonProgressStore.progress(for: season.id)
+            return season.rewards.filter { progress.unlockedRewardIDs.contains($0.id) }
         }
-        if tbDrinkRewardUnlocked {
-            rewards.append(.tbBasketballDrink)
-        }
-        if bibOfferRewardUnlocked {
-            rewards.append(.bibOfferCode)
-        }
-        return rewards
+    }
+
+    func seasonID(for reward: ChallengeReward) -> String? {
+        SeasonCatalog.all.first { $0.rewards.contains(where: { $0.id == reward.id }) }?.id
     }
 
     func isChallengeRewardRedeemed(_ reward: ChallengeReward) -> Bool {
-        switch reward.id {
-        case ChallengeReward.zirkelFreeEntry.id:
-            return zirkelRewardRedeemed
-        case ChallengeReward.tbBasketballDrink.id:
-            return tbDrinkRewardRedeemed
-        case ChallengeReward.bibOfferCode.id:
-            return bibOfferRewardRedeemed
-        default:
-            return false
-        }
+        guard let seasonID = seasonID(for: reward) else { return false }
+        return seasonProgressStore.progress(for: seasonID).redeemedRewardIDs.contains(reward.id)
     }
 
     func canRedeemChallengeReward(_ reward: ChallengeReward) -> Bool {
-        if reward.id == ChallengeReward.zirkelFreeEntry.id {
-            let components = Calendar.current.dateComponents([.year, .month], from: currentDate)
-            guard components.year == 2026, let month = components.month else {
-                return false
-            }
-            return month == 6 || month == 7
-        }
+        guard !isChallengeRewardRedeemed(reward) else { return false }
+        guard let seasonID = seasonID(for: reward), let season = SeasonCatalog.season(id: seasonID) else { return false }
+        if let starts = reward.redemptionStartsAt?.date(in: season.calendar), currentDate < starts { return false }
+        if let ends = reward.redemptionEndsAt?.date(in: season.calendar), currentDate >= ends { return false }
         return true
     }
 
     var completedChallenges: Set<String> {
-        Set(
-            completedChallengeIdentifiers
-                .split(separator: ",")
-                .map(String.init)
-        )
+        activeSeasonProgress.completedChallengeIDs.intersection(Set(challengeDefinitions.filter { !$0.isPlaceholder }.map(\.id)))
     }
 
-    var completedChallengesCount: Int {
-        challengeDefinitions.filter { completedChallenges.contains($0.id) }.count
+    var challengeIntroduction: String {
+        if challengePreview != nil { return "" }
+        if activeSeasonPhase == .preview || challengeDefinitions.allSatisfy(\.isPlaceholder) {
+            return "Die Challenges für \(activeBadgeSeason.title) werden noch vorbereitet."
+        }
+        return "Hier findest du an jedem Bergtag eine Challenge rund um das Thema Kirchweih und Erlangen. Du kannst nur an genau diesem Tag mitmachen und an ausgewählten Tagen eine **Belohnung** erhalten."
     }
 
-    var totalChallengesCount: Int {
-        challengeDefinitions.count
+    var completedChallengesCount: Int { challengeDefinitions.filter { completedChallenges.contains($0.id) }.count }
+    var totalChallengesCount: Int { challengeDefinitions.filter { !$0.isPlaceholder }.count }
+
+    /// Preview is display-only and is never a claim, completion or notification source.
+    var challengePreview: DailyChallenge? {
+        guard activeSeasonPhase == .preview else { return nil }
+        return challengeDefinitions.first
     }
 
     var activeChallenge: DailyChallenge? {
-        guard let firstChallenge = challengeDefinitions.first else {
-            return nil
-        }
-
-        let currentDay = Calendar.current.startOfDay(for: currentDate)
-        let firstChallengeDay = Calendar.current.startOfDay(for: firstChallenge.date)
-
-        if currentDay < firstChallengeDay {
-            return firstChallenge
-        }
-
-        if let overnightChallenge = challengeDefinitions.first(where: { challenge in
-            guard challenge.spansMidnight, let startDate = challenge.startDate, let endDate = challenge.endDate else {
-                return false
-            }
-
-            return currentDate >= startDate && currentDate <= endDate
-        }) {
-            return overnightChallenge
-        }
-
-        return challengeDefinitions.first {
-            Calendar.current.isDate($0.date, inSameDayAs: currentDate)
-        }
+        guard activeSeasonPhase == .active else { return nil }
+        if let overnight = challengeDefinitions.first(where: { challenge in
+            guard challenge.spansMidnight, let start = challenge.startDate, let end = challenge.endDate else { return false }
+            return currentDate >= start && currentDate < end
+        }) { return overnight }
+        return challengeDefinitions.first { badgeCalendar.isDate($0.date, inSameDayAs: currentDate) }
     }
 
     var canCheckInForActiveChallenge: Bool {
-        guard let activeChallenge else {
-            return false
-        }
-
-        guard activeChallenge.requiresLocationCheckIn,
-              Calendar.current.isDate(activeChallenge.date, inSameDayAs: currentDate),
-              !isChallengeCompleted(activeChallenge),
-              isWithinChallengeWindow(activeChallenge),
-              isWithinChallengeRadius(activeChallenge) else {
-            return false
-        }
-
-        return true
+        guard let challenge = activeChallenge else { return false }
+        return !challenge.isPlaceholder && challenge.requiresLocationCheckIn && !isChallengeCompleted(challenge) &&
+            isWithinChallengeWindow(challenge) && isWithinChallengeRadius(challenge)
     }
 
     var shouldShowChallengeButton: Bool {
-        guard let activeChallenge else {
-            return false
-        }
-
-        return activeChallenge.requiresLocationCheckIn && !isChallengeCompleted(activeChallenge)
+        guard let challenge = activeChallenge else { return false }
+        return !challenge.isPlaceholder && challenge.requiresLocationCheckIn && !isChallengeCompleted(challenge)
     }
 
-    var activeChallengeButtonTitle: String {
-        "Abhaken"
-    }
+    var activeChallengeButtonTitle: String { "Abhaken" }
 
     var challengeStatusText: String {
-        guard let activeChallenge else {
-            return "Für heute gibt es keine Challenge mehr."
-        }
-
-        if isChallengeCompleted(activeChallenge) {
-            return "Challenge für heute erledigt."
-        }
-
-        let currentDay = Calendar.current.startOfDay(for: currentDate)
-        let challengeDay = Calendar.current.startOfDay(for: activeChallenge.date)
-
-        if currentDay < challengeDay {
-            return ""
-        }
-
-        if !activeChallenge.requiresLocationCheckIn {
-            return "Ort und Details werden an diesem Tag freigeschaltet."
-        }
-
-        if !isWithinChallengeWindow(activeChallenge) {
-            return ""
-        }
-
-        if !isWithinChallengeRadius(activeChallenge) {
-            return "Du musst dich für den Check-in im markierten Bereich befinden."
-        }
-
+        guard let challenge = activeChallenge else { return activeSeasonPhase == .preview ? "Die nächste Challenge wird zur Saisonöffnung freigeschaltet." : "Für heute gibt es keine Challenge mehr." }
+        if challenge.isPlaceholder { return "" }
+        if isChallengeCompleted(challenge) { return "Challenge für heute erledigt." }
+        if !challenge.requiresLocationCheckIn { return "Ort und Details werden an diesem Tag freigeschaltet." }
+        if !isWithinChallengeWindow(challenge) { return "" }
+        if !isWithinChallengeRadius(challenge) { return "Du musst dich für den Check-in im markierten Bereich befinden." }
         return "Du bist im Zeitfenster und am richtigen Ort. Jetzt kannst du einchecken."
     }
 
-    var hasChallengeSeasonEnded: Bool {
-        guard let eventStartDate else {
-            return false
-        }
-
-        var components = Calendar.current.dateComponents([.year], from: eventStartDate)
-        components.month = 6
-        components.day = 2
-
-        guard let challengeEndDate = Calendar.current.date(from: components) else {
-            return false
-        }
-
-        return currentDate >= Calendar.current.startOfDay(for: challengeEndDate)
-    }
+    var hasChallengeSeasonEnded: Bool { currentDate >= activeBadgeSeason.endDate }
 
     func claimActiveChallenge() async {
-        guard let activeChallenge, canCheckInForActiveChallenge else {
-            return
-        }
-
-        var updatedChallenges = completedChallenges
-        updatedChallenges.insert(activeChallenge.id)
-        completedChallengeIdentifiers = updatedChallenges.sorted().joined(separator: ",")
+        guard let challenge = activeChallenge, canCheckInForActiveChallenge else { return }
+        seasonProgressStore.completeChallenge(challenge.id, in: activeBadgeSeason.id)
+        let updatedChallenges = completedChallenges.union([challenge.id])
         triggerSuccessHaptic()
+        await analyticsService.track(eventType: .challengeCompleted, installID: analyticsInstallID, eventDate: currentDate, badgeCountAfterEvent: unlockedBadges.count, isPerfectSoFar: isPerfectSoFar(with: unlockedBadges), challengeCountAfterEvent: updatedChallenges.count, seasonID: activeBadgeSeason.id)
 
-        let badgeCountAfterEvent = unlockedBadges.count
-        let perfectSoFar = isPerfectSoFar(with: unlockedBadges)
-        let challengeCountAfterEvent = updatedChallenges.count
-        let installID = analyticsInstallID
-        let eventDate = currentDate
-        await analyticsService.track(
-            eventType: .challengeCompleted,
-            installID: installID,
-            eventDate: eventDate,
-            badgeCountAfterEvent: badgeCountAfterEvent,
-            isPerfectSoFar: perfectSoFar,
-            challengeCountAfterEvent: challengeCountAfterEvent
-        )
-
-        if activeChallenge.id == "2026-05-25" && !tbDrinkRewardUnlocked {
-            tbDrinkRewardUnlocked = true
-            tbDrinkRewardRedeemed = false
-            withAnimation(overlayPresentationAnimation) {
-                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: .tbBasketballDrink)
-            }
-        }
-
-        if activeChallenge.id == "2026-05-22" && !zirkelRewardUnlocked {
-            zirkelRewardUnlocked = true
-            zirkelRewardRedeemed = false
-            withAnimation(overlayPresentationAnimation) {
-                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: .zirkelFreeEntry)
-            }
-        }
-
-        if activeChallenge.id == "2026-05-29" && !bibOfferRewardUnlocked {
-            bibOfferRewardUnlocked = true
-            bibOfferRewardRedeemed = false
-            withAnimation(overlayPresentationAnimation) {
-                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: .bibOfferCode)
-            }
+        if let rewardID = challenge.rewardID, let reward = activeBadgeSeason.reward(withID: rewardID), !activeSeasonProgress.unlockedRewardIDs.contains(rewardID) {
+            seasonProgressStore.unlockReward(rewardID, in: activeBadgeSeason.id)
+            withAnimation(overlayPresentationAnimation) { activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: reward) }
         }
     }
 
     func redeemChallengeReward(_ reward: ChallengeReward) {
-        switch reward.id {
-        case ChallengeReward.zirkelFreeEntry.id:
-            guard zirkelRewardUnlocked, !zirkelRewardRedeemed, canRedeemChallengeReward(reward) else {
-                return
-            }
-            zirkelRewardRedeemed = true
-        case ChallengeReward.tbBasketballDrink.id:
-            guard tbDrinkRewardUnlocked, !tbDrinkRewardRedeemed else {
-                return
-            }
-            tbDrinkRewardRedeemed = true
-        case ChallengeReward.bibOfferCode.id:
-            guard bibOfferRewardUnlocked, !bibOfferRewardRedeemed else {
-                return
-            }
-            bibOfferRewardRedeemed = true
-            if let redeemURL = URL(string: "https://apps.apple.com/redeem?ctx=offercodes&id=6752996931&code=BERGSCHEIN") {
-                openURL(redeemURL)
-            }
-        default:
-            return
-        }
-
+        guard let seasonID = seasonID(for: reward), canRedeemChallengeReward(reward) else { return }
+        seasonProgressStore.redeemReward(reward.id, in: seasonID)
+        if let url = reward.redemptionURL { openURL(url) }
         triggerSuccessHaptic()
     }
 
-    func isChallengeCompleted(_ challenge: DailyChallenge) -> Bool {
-        completedChallenges.contains(challenge.id)
-    }
+    func isChallengeCompleted(_ challenge: DailyChallenge) -> Bool { completedChallenges.contains(challenge.id) }
 
     func isWithinChallengeWindow(_ challenge: DailyChallenge) -> Bool {
-        if isTestModeActive {
-            return true
-        }
-
-        guard let startDate = challenge.startDate, let endDate = challenge.endDate else {
-            return Calendar.current.isDate(challenge.date, inSameDayAs: currentDate)
-        }
-
-        return currentDate >= startDate && currentDate <= endDate
+        guard !challenge.isPlaceholder else { return false }
+        guard let start = challenge.startDate, let end = challenge.endDate else { return badgeCalendar.isDate(challenge.date, inSameDayAs: currentDate) }
+        return currentDate >= start && currentDate < end
     }
 
     func isWithinChallengeRadius(_ challenge: DailyChallenge) -> Bool {
-        if isTestModeActive {
-            return true
-        }
-
-        guard let center = challenge.centerCoordinate, let radius = challenge.radius else {
-            return true
-        }
-
-        guard let distance = locationController.distance(to: center) else {
-            return false
-        }
-
+        guard !challenge.isPlaceholder else { return false }
+        guard let center = challenge.centerCoordinate, let radius = challenge.radius else { return true }
+        guard let distance = locationController.distance(to: center) else { return false }
         return distance <= radius
     }
 
     func challengeDistanceText(for challenge: DailyChallenge) -> String? {
-        guard let center = challenge.centerCoordinate else {
-            return nil
-        }
-
-        if isWithinChallengeRadius(challenge) {
-            return "Hier"
-        }
-
-        guard let distance = locationController.distance(to: center) else {
-            return nil
-        }
-
-        if distance < 1000 {
-            return "\(Int(distance.rounded())) m entfernt"
-        }
-
-        return String(format: "%.1f km entfernt", distance / 1000)
+        guard let center = challenge.centerCoordinate else { return nil }
+        if isWithinChallengeRadius(challenge) { return "Hier" }
+        guard let distance = locationController.distance(to: center) else { return nil }
+        return distance < 1000 ? "\(Int(distance.rounded())) m entfernt" : String(format: "%.1f km entfernt", distance / 1000)
     }
 
     func challengeDirectionAngle(for challenge: DailyChallenge) -> Double? {
-        guard let center = challenge.centerCoordinate else {
-            return nil
-        }
-
+        guard let center = challenge.centerCoordinate else { return nil }
         return locationController.directionAngle(to: center)
     }
 }
