@@ -957,7 +957,7 @@ extension ContentView {
             isWithinChallengeRadius: isWithinChallengeRadius(_:),
             challengeDistanceText: challengeDistanceText(for:),
             challengeDirectionAngle: challengeDirectionAngle(for:),
-            unlockedChallengeRewards: unlockedChallengeRewards,
+            unlockedChallengeRewardGroups: unlockedChallengeRewardGroups,
             isChallengeRewardRedeemed: isChallengeRewardRedeemed(_:),
             canRedeemChallengeReward: canRedeemChallengeReward(_:),
             onLocationTap: { challenge in

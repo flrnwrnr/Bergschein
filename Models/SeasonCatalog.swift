@@ -84,6 +84,31 @@ struct RaffleConfiguration: Hashable {
     }
 }
 
+struct ChallengeRewardSeasonGroup: Identifiable {
+    let id: String
+    let title: String
+    let rewards: [ChallengeReward]
+
+    static func unlocked(
+        in seasons: [SeasonDefinition],
+        progressForSeason: (String) -> SeasonProgress
+    ) -> [ChallengeRewardSeasonGroup] {
+        seasons
+            .sorted {
+                if $0.openingDate == $1.openingDate {
+                    return $0.id > $1.id
+                }
+                return $0.openingDate > $1.openingDate
+            }
+            .compactMap { season in
+                let unlockedRewardIDs = progressForSeason(season.id).unlockedRewardIDs
+                let rewards = season.rewards.filter { unlockedRewardIDs.contains($0.id) }
+                guard !rewards.isEmpty else { return nil }
+                return ChallengeRewardSeasonGroup(id: season.id, title: season.title, rewards: rewards)
+            }
+    }
+}
+
 enum SeasonCatalog {
     static let configurationVersion = 1
     static let all: [SeasonDefinition] = [season2026, season2027Preview]

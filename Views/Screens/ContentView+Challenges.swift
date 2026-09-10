@@ -5,12 +5,11 @@ extension ContentView {
         Dictionary(uniqueKeysWithValues: activeBadgeSeason.rewards.map { ($0.id, $0) })
     }
 
-    /// Rewards remain accessible for every archived season that earned them;
-    /// the active tab adds the current season's rewards without erasing 2026.
-    var unlockedChallengeRewards: [ChallengeReward] {
-        SeasonCatalog.all.flatMap { season in
-            let progress = seasonProgressStore.progress(for: season.id)
-            return season.rewards.filter { progress.unlockedRewardIDs.contains($0.id) }
+    /// Rewards remain accessible for every season that earned them. Newer
+    /// seasons appear first while each season keeps its catalog order.
+    var unlockedChallengeRewardGroups: [ChallengeRewardSeasonGroup] {
+        ChallengeRewardSeasonGroup.unlocked(in: SeasonCatalog.all) {
+            seasonProgressStore.progress(for: $0)
         }
     }
 

@@ -142,6 +142,44 @@ final class SeasonCatalogTests: XCTestCase {
         XCTAssertEqual(ends, date(year: 2026, month: 8, day: 1, hour: 0))
     }
 
+    func testUnlockedRewardGroupsSortNewestSeasonFirstAndOmitEmptySeasons() {
+        let reward2026 = makeReward(id: "reward-2026")
+        let reward2028 = makeReward(id: "reward-2028")
+        let seasons = [
+            makeSeason(id: "season-2026", year: 2026, rewards: [reward2026]),
+            makeSeason(id: "season-2028", year: 2028, rewards: [reward2028]),
+            makeSeason(id: "season-2027", year: 2027, rewards: [makeReward(id: "reward-2027")])
+        ]
+        let progressBySeasonID = [
+            "season-2026": SeasonProgress(unlockedRewardIDs: [reward2026.id]),
+            "season-2028": SeasonProgress(unlockedRewardIDs: [reward2028.id])
+        ]
+
+        let groups = ChallengeRewardSeasonGroup.unlocked(in: seasons) {
+            progressBySeasonID[$0] ?? SeasonProgress()
+        }
+
+        XCTAssertEqual(groups.map(\.id), ["season-2028", "season-2026"])
+        XCTAssertEqual(groups.map(\.title), ["2028", "2026"])
+    }
+
+    func testUnlockedRewardGroupsPreserveRewardCatalogOrder() {
+        let firstReward = makeReward(id: "first")
+        let lockedReward = makeReward(id: "locked")
+        let lastReward = makeReward(id: "last")
+        let season = makeSeason(
+            id: "season-2030",
+            year: 2030,
+            rewards: [firstReward, lockedReward, lastReward]
+        )
+        let progress = SeasonProgress(unlockedRewardIDs: [lastReward.id, firstReward.id])
+
+        let groups = ChallengeRewardSeasonGroup.unlocked(in: [season]) { _ in progress }
+
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].rewards.map(\.id), [firstReward.id, lastReward.id])
+    }
+
     private func date(year: Int, month: Int, day: Int, hour: Int) -> Date {
         BergscheinDateHelper.date(
             year: year,
@@ -151,5 +189,38 @@ final class SeasonCatalogTests: XCTestCase {
             minute: 0,
             calendar: BergscheinDateHelper.eventCalendar
         )!
+    }
+
+    private func makeSeason(id: String, year: Int, rewards: [ChallengeReward]) -> SeasonDefinition {
+        SeasonDefinition(
+            id: id,
+            configurationVersion: SeasonCatalog.configurationVersion,
+            title: String(year),
+            timeZoneIdentifier: "Europe/Berlin",
+            previewStartsAt: SeasonMoment(year: year, month: 1, day: 1, hour: 0, minute: 0),
+            openingAt: SeasonMoment(year: year, month: 1, day: 2, hour: 0, minute: 0),
+            endsAt: SeasonMoment(year: year, month: 1, day: 3, hour: 0, minute: 0),
+            archiveStartsAt: SeasonMoment(year: year, month: 1, day: 4, hour: 0, minute: 0),
+            badges: [],
+            challenges: [],
+            rewards: rewards,
+            raffle: nil
+        )
+    }
+
+    private func makeReward(id: String) -> ChallengeReward {
+        ChallengeReward(
+            id: id,
+            icon: "",
+            imageName: nil,
+            title: id,
+            subtitle: "",
+            details: "",
+            infoURL: nil,
+            redemptionHint: "",
+            redemptionStartsAt: nil,
+            redemptionEndsAt: nil,
+            redemptionURL: nil
+        )
     }
 }

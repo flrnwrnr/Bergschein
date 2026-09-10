@@ -22,7 +22,7 @@ struct ChallengeView: View {
     let isWithinChallengeRadius: (DailyChallenge) -> Bool
     let challengeDistanceText: (DailyChallenge) -> String?
     let challengeDirectionAngle: (DailyChallenge) -> Double?
-    let unlockedChallengeRewards: [ChallengeReward]
+    let unlockedChallengeRewardGroups: [ChallengeRewardSeasonGroup]
     let isChallengeRewardRedeemed: (ChallengeReward) -> Bool
     let canRedeemChallengeReward: (ChallengeReward) -> Bool
     let onLocationTap: (DailyChallenge) -> Void
@@ -49,11 +49,11 @@ struct ChallengeView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
-                        if !unlockedChallengeRewards.isEmpty {
+                        if !unlockedChallengeRewardGroups.isEmpty {
                             NavigationLink {
                                 ChallengeRewardsView(
                                     appBackgroundGradient: appBackgroundGradient,
-                                    rewards: unlockedChallengeRewards,
+                                    rewardGroups: unlockedChallengeRewardGroups,
                                     isChallengeRewardRedeemed: isChallengeRewardRedeemed,
                                     canRedeemChallengeReward: canRedeemChallengeReward,
                                     onRedeemChallengeReward: onRedeemChallengeReward
@@ -61,7 +61,7 @@ struct ChallengeView: View {
                             } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "gift.fill")
-                                    Text("Belohnungen 2026")
+                                    Text("Belohnungen")
                                 }
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
@@ -164,7 +164,7 @@ private struct ChallengeRewardsView: View {
     @State private var rewardPendingRedeem: ChallengeReward?
 
     let appBackgroundGradient: LinearGradient
-    let rewards: [ChallengeReward]
+    let rewardGroups: [ChallengeRewardSeasonGroup]
     let isChallengeRewardRedeemed: (ChallengeReward) -> Bool
     let canRedeemChallengeReward: (ChallengeReward) -> Bool
     let onRedeemChallengeReward: (ChallengeReward) -> Void
@@ -172,16 +172,25 @@ private struct ChallengeRewardsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                ForEach(rewards) { reward in
-                    ChallengeRewardCardView(
-                        reward: reward,
-                        isRedeemed: isChallengeRewardRedeemed(reward),
-                        canRedeem: canRedeemChallengeReward(reward),
-                        onRedeemTap: {
-                            rewardPendingRedeem = reward
-                            rewardRedeemAlertIsPresented = true
+                ForEach(rewardGroups) { group in
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Bergschein \(group.title)")
+                            .font(.headline)
+                            .accessibilityAddTraits(.isHeader)
+
+                        ForEach(group.rewards) { reward in
+                            ChallengeRewardCardView(
+                                reward: reward,
+                                isRedeemed: isChallengeRewardRedeemed(reward),
+                                canRedeem: canRedeemChallengeReward(reward),
+                                onRedeemTap: {
+                                    rewardPendingRedeem = reward
+                                    rewardRedeemAlertIsPresented = true
+                                }
+                            )
                         }
-                    )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(16)
@@ -189,7 +198,7 @@ private struct ChallengeRewardsView: View {
             .padding(.bottom, 24)
         }
         .background(appBackgroundGradient.ignoresSafeArea())
-        .navigationTitle("Belohnungen 2026")
+        .navigationTitle("Belohnungen")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Belohnung einlösen?", isPresented: $rewardRedeemAlertIsPresented) {
             Button("Abbrechen", role: .cancel) { }
