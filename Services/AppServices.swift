@@ -10,7 +10,7 @@ import MapKit
 import StoreKit
 import SwiftUI
 
-enum AnalyticsEventType: String, Codable {
+enum AnalyticsEventType: String, Codable, Sendable {
     case badgeClaimed = "badge_claimed"
     case challengeCompleted = "challenge_completed"
 }

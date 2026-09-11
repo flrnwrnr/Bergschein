@@ -137,7 +137,7 @@ extension ContentView {
     }
 
     func syncCurrentDate() {
-        currentDate = Date()
+        contentStore.syncCurrentDate()
     }
 
     func syncMapPosition() {

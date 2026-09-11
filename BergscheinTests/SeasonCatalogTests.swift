@@ -1,3 +1,4 @@
+import Combine
 import XCTest
 @testable import Bergschein
 
@@ -64,8 +65,11 @@ final class SeasonCatalogTests: XCTestCase {
             requiresLocationCheckIn: false
         )
 
+        var seasonCalendar = Calendar(identifier: .gregorian)
+        seasonCalendar.timeZone = TimeZone(identifier: "America/New_York")!
+
         XCTAssertTrue(challenge.spansMidnight)
-        XCTAssertEqual(challenge.endDate!.timeIntervalSince(challenge.startDate!), 2 * 60 * 60)
+        XCTAssertEqual(challenge.endDate(in: seasonCalendar)!.timeIntervalSince(challenge.startDate(in: seasonCalendar)!), 2 * 60 * 60)
     }
 
     func testLegacyMigrationIsAdditiveAndRunsOnlyOnce() {
@@ -119,6 +123,68 @@ final class SeasonCatalogTests: XCTestCase {
         XCTAssertEqual(defaults.data(forKey: SeasonProgressStore.storageKey), corruptedData)
         XCTAssertEqual(defaults.integer(forKey: SeasonProgressStore.migrationKey), 0)
         XCTAssertEqual(store.progress(for: "bergschein-2026"), SeasonProgress())
+    }
+
+    func testProgressActionsUpdateOnlyTheirSeasonRecord() {
+        let suiteName = "SeasonCatalogTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = SeasonProgressStore(defaults: defaults)
+        let seasonID = "test-season"
+
+        store.unlockBadge("badge-1", in: seasonID)
+        store.completeChallenge("challenge-1", in: seasonID)
+        store.unlockReward("reward-1", in: seasonID)
+        store.redeemReward("reward-1", in: seasonID)
+        store.setRaffle(
+            SeasonRaffleProgress(
+                hasJoined: true,
+                consentTimestamp: "2026-05-21T10:00:00Z",
+                contactEmail: "test@example.com",
+                contactName: "Test User"
+            ),
+            in: seasonID
+        )
+
+        let progress = store.progress(for: seasonID)
+        XCTAssertEqual(progress.unlockedBadgeIDs, ["badge-1"])
+        XCTAssertEqual(progress.completedChallengeIDs, ["challenge-1"])
+        XCTAssertEqual(progress.unlockedRewardIDs, ["reward-1"])
+        XCTAssertEqual(progress.redeemedRewardIDs, ["reward-1"])
+        XCTAssertTrue(progress.raffle.hasJoined)
+        XCTAssertEqual(progress.raffle.consentTimestamp, "2026-05-21T10:00:00Z")
+        XCTAssertEqual(progress.raffle.contactEmail, "test@example.com")
+        XCTAssertEqual(progress.raffle.contactName, "Test User")
+        XCTAssertEqual(store.progress(for: "other-season"), SeasonProgress())
+    }
+
+    func testProgressActionsPersistAcrossReopeningStore() {
+        let suiteName = "SeasonCatalogTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let seasonID = "persistent-season"
+        let expected = SeasonProgress(
+            unlockedBadgeIDs: ["badge-1"],
+            completedChallengeIDs: ["challenge-1"],
+            unlockedRewardIDs: ["reward-1"],
+            redeemedRewardIDs: ["reward-1"],
+            raffle: SeasonRaffleProgress(
+                hasJoined: true,
+                consentTimestamp: "2026-05-21T10:00:00Z",
+                contactEmail: "test@example.com",
+                contactName: "Test User"
+            )
+        )
+
+        let store = SeasonProgressStore(defaults: defaults)
+        store.unlockBadge("badge-1", in: seasonID)
+        store.completeChallenge("challenge-1", in: seasonID)
+        store.unlockReward("reward-1", in: seasonID)
+        store.redeemReward("reward-1", in: seasonID)
+        store.setRaffle(expected.raffle, in: seasonID)
+
+        let reopenedStore = SeasonProgressStore(defaults: defaults)
+        XCTAssertEqual(reopenedStore.progress(for: seasonID), expected)
     }
 
     func testLegacyAnalyticsPayloadKeepsTheNetworkContractAndDefaultsTo2026() throws {
@@ -222,5 +288,253 @@ final class SeasonCatalogTests: XCTestCase {
             redemptionEndsAt: nil,
             redemptionURL: nil
         )
+    }
+}
+
+@MainActor
+final class ContentViewStoreTests: XCTestCase {
+    private var suiteNames: [String] = []
+
+    override func tearDown() async throws {
+        let suiteNames = self.suiteNames
+        self.suiteNames.removeAll()
+        for suiteName in suiteNames {
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
+        }
+        try await super.tearDown()
+    }
+
+    func testClaimEligibilityHonorsOpeningLocationAndExistingProgress() {
+        let beforeOpening = makeDate(year: 2026, month: 5, day: 21, hour: 16)
+        let store = makeStore(date: beforeOpening)
+
+        XCTAssertFalse(store.canClaimToday(isInAllowedRegion: true))
+
+        store.currentDate = makeDate(year: 2026, month: 5, day: 21, hour: 17)
+        XCTAssertFalse(store.canClaimToday(isInAllowedRegion: false))
+        XCTAssertTrue(store.canClaimToday(isInAllowedRegion: true))
+
+        store.seasonProgressStore.unlockBadge("05-21", in: "bergschein-2026")
+        XCTAssertFalse(store.canClaimToday(isInAllowedRegion: true))
+    }
+
+    func testChildProgressChangesPublishDerivedState() {
+        let store = makeStore(date: makeDate(year: 2026, month: 5, day: 21, hour: 17))
+        let expectation = expectation(description: "store publishes progress changes")
+        var cancellable: AnyCancellable?
+        cancellable = store.objectWillChange.sink {
+            expectation.fulfill()
+            cancellable?.cancel()
+        }
+
+        store.seasonProgressStore.unlockBadge("05-21", in: "bergschein-2026")
+
+        wait(for: [expectation], timeout: 1)
+        XCTAssertTrue(store.isCurrentBadgeUnlocked)
+        XCTAssertEqual(store.activeSeasonProgress.unlockedBadgeIDs, ["05-21"])
+    }
+
+    func testSeasonScopeFiltersUnknownProgressIdentifiers() {
+        let store = makeStore(date: makeDate(year: 2027, month: 5, day: 13, hour: 12))
+        store.seasonProgressStore.unlockBadge("2027-05-13", in: "bergschein-2027")
+        store.seasonProgressStore.unlockBadge("unknown-badge", in: "bergschein-2027")
+        store.seasonProgressStore.completeChallenge("unknown-challenge", in: "bergschein-2027")
+
+        XCTAssertEqual(store.unlockedBadges, ["2027-05-13"])
+        XCTAssertTrue(store.completedChallenges.isEmpty)
+        XCTAssertFalse(store.isChallengeRewardRedeemed(makeReward(id: "unknown-reward")))
+        XCTAssertNil(store.seasonProgressStore.progress(for: "unconfigured-season").unlockedBadgeIDs.first)
+    }
+
+    func testMissedBadgeAndStreakReflectProgressBeforeCurrentBadge() {
+        let date = makeDate(year: 2026, month: 5, day: 23, hour: 12)
+        let store = makeStore(date: date)
+        store.seasonProgressStore.unlockBadge("05-21", in: "bergschein-2026")
+
+        XCTAssertEqual(store.currentBadge?.id, "05-23")
+        XCTAssertEqual(store.blockingMissedBadge?.id, "05-22")
+        XCTAssertEqual(store.currentStreak, 0)
+
+        store.seasonProgressStore.unlockBadge("05-22", in: "bergschein-2026")
+        XCTAssertNil(store.blockingMissedBadge)
+        XCTAssertEqual(store.currentStreak, 0)
+        store.seasonProgressStore.unlockBadge("05-23", in: "bergschein-2026")
+        XCTAssertEqual(store.currentStreak, 3)
+    }
+
+    func testChallengePreviewPlaceholderAndCompletionAreSeasonScoped() {
+        let previewStore = makeStore(date: makeDate(year: 2027, month: 5, day: 13, hour: 12))
+        XCTAssertEqual(previewStore.activeBadgeSeason.id, "bergschein-2027")
+        XCTAssertNil(previewStore.activeChallenge)
+        XCTAssertTrue(previewStore.challengeDefinitions.dropFirst().allSatisfy(\.isPlaceholder))
+
+        let activeStore = makeStore(date: makeDate(year: 2026, month: 5, day: 22, hour: 21))
+        XCTAssertEqual(activeStore.activeChallenge?.id, "2026-05-22")
+        XCTAssertTrue(activeStore.isWithinChallengeWindow(DailyChallenge.all[1]))
+        activeStore.seasonProgressStore.completeChallenge("2026-05-22", in: "bergschein-2026")
+        XCTAssertEqual(activeStore.completedChallengesCount, 1)
+        XCTAssertFalse(activeStore.canCheckInForActiveChallenge { _ in true })
+    }
+
+    func testChallengeRewardRedemptionUsesExclusiveEndAndCannotBeClaimedTwice() {
+        let reward = ChallengeReward.zirkelFreeEntry
+        let store = makeStore(date: makeDate(year: 2026, month: 7, day: 31, hour: 23))
+        store.seasonProgressStore.unlockReward(reward.id, in: "bergschein-2026")
+
+        XCTAssertTrue(store.canRedeemChallengeReward(reward))
+        XCTAssertNotNil(store.redeemChallengeReward(reward))
+        XCTAssertFalse(store.canRedeemChallengeReward(reward))
+        XCTAssertNil(store.redeemChallengeReward(reward))
+
+        let afterEnd = makeStore(date: makeDate(year: 2026, month: 8, day: 1, hour: 0))
+        afterEnd.seasonProgressStore.unlockReward(reward.id, in: "bergschein-2026")
+        XCTAssertFalse(afterEnd.canRedeemChallengeReward(reward))
+    }
+
+    func testSyncCurrentDateUsesInjectedClock() {
+        var clock = makeDate(year: 2026, month: 5, day: 21, hour: 17)
+        let store = ContentViewStore(seasonProgressStore: makeProgressStore(), now: { clock })
+
+        XCTAssertEqual(store.currentDate, clock)
+        clock = makeDate(year: 2026, month: 5, day: 22, hour: 17)
+        store.syncCurrentDate()
+        XCTAssertEqual(store.currentDate, clock)
+        XCTAssertEqual(store.currentBadge?.id, "05-22")
+    }
+
+    func testBadgeClaimEmitsSnapshotAndDuplicateClaimIsRejected() async {
+        let recorder = AnalyticsEventGate()
+        let date = makeDate(year: 2026, month: 5, day: 21, hour: 17)
+        let store = ContentViewStore(
+            seasonProgressStore: makeProgressStore(),
+            now: { date },
+            analyticsTracker: { event in await recorder.track(event) }
+        )
+
+        let firstClaim = Task {
+            await store.claimBadge(isInAllowedRegion: true, analyticsInstallID: "install")
+        }
+        await recorder.waitUntilEntered()
+        XCTAssertTrue(store.isCurrentBadgeUnlocked)
+
+        let duplicate = await store.claimBadge(isInAllowedRegion: true, analyticsInstallID: "install")
+        XCTAssertNil(duplicate)
+        store.currentDate = makeDate(year: 2027, month: 5, day: 13, hour: 12)
+        XCTAssertEqual(store.activeBadgeSeason.id, "bergschein-2027")
+
+        await recorder.release()
+        let result = await firstClaim.value
+        let events = await recorder.events
+
+        XCTAssertEqual(result?.badge.id, "05-21")
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.eventType, .badgeClaimed)
+        XCTAssertEqual(events.first?.badgeCountAfterEvent, 1)
+        XCTAssertTrue(events.first?.isPerfectSoFar == true)
+        XCTAssertEqual(events.first?.seasonID, "bergschein-2026")
+    }
+
+    func testChallengeClaimUnlocksRewardAndEmitsSnapshot() async {
+        let recorder = AnalyticsEventGate()
+        let date = makeDate(year: 2026, month: 5, day: 22, hour: 21)
+        let store = ContentViewStore(
+            seasonProgressStore: makeProgressStore(),
+            now: { date },
+            analyticsTracker: { event in await recorder.track(event) }
+        )
+        var accepted = false
+
+        let firstClaim = Task {
+            await store.claimActiveChallenge(
+                isWithinRadius: { _ in true },
+                analyticsInstallID: "install",
+                onClaimAccepted: { accepted = true }
+            )
+        }
+        await recorder.waitUntilEntered()
+        XCTAssertTrue(accepted)
+        XCTAssertTrue(store.completedChallenges.contains("2026-05-22"))
+        XCTAssertTrue(store.activeSeasonProgress.unlockedRewardIDs.contains(ChallengeReward.zirkelFreeEntry.id))
+
+        store.currentDate = makeDate(year: 2027, month: 5, day: 13, hour: 12)
+        XCTAssertEqual(store.activeBadgeSeason.id, "bergschein-2027")
+        await recorder.release()
+        let result = await firstClaim.value
+        let events = await recorder.events
+
+        XCTAssertEqual(result?.unlockedReward?.id, ChallengeReward.zirkelFreeEntry.id)
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.eventType, .challengeCompleted)
+        XCTAssertEqual(events.first?.challengeCountAfterEvent, 1)
+    }
+
+    private func makeStore(date: Date) -> ContentViewStore {
+        ContentViewStore(seasonProgressStore: makeProgressStore(), now: { date })
+    }
+
+    private func makeProgressStore() -> SeasonProgressStore {
+        let suiteName = "ContentViewStoreTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            fatalError("Could not create isolated UserDefaults suite")
+        }
+        suiteNames.append(suiteName)
+        defaults.removePersistentDomain(forName: suiteName)
+        return SeasonProgressStore(defaults: defaults)
+    }
+
+    private func makeDate(year: Int, month: Int, day: Int, hour: Int) -> Date {
+        BergscheinDateHelper.date(
+            year: year,
+            month: month,
+            day: day,
+            hour: hour,
+            minute: 0,
+            calendar: BergscheinDateHelper.eventCalendar
+        ) ?? Date(timeIntervalSince1970: 0)
+    }
+
+    private func makeReward(id: String) -> ChallengeReward {
+        ChallengeReward(
+            id: id,
+            icon: "",
+            imageName: nil,
+            title: id,
+            subtitle: "",
+            details: "",
+            infoURL: nil,
+            redemptionHint: "",
+            redemptionStartsAt: nil,
+            redemptionEndsAt: nil,
+            redemptionURL: nil
+        )
+    }
+}
+
+private actor AnalyticsEventGate {
+    private(set) var events: [ContentViewStore.AnalyticsTrackingEvent] = []
+    private var entered = false
+    private var entryContinuation: CheckedContinuation<Void, Never>?
+    private var releaseContinuation: CheckedContinuation<Void, Never>?
+
+    func track(_ event: ContentViewStore.AnalyticsTrackingEvent) async {
+        entered = true
+        entryContinuation?.resume()
+        entryContinuation = nil
+        await withCheckedContinuation { continuation in
+            releaseContinuation = continuation
+        }
+        events.append(event)
+    }
+
+    func waitUntilEntered() async {
+        guard !entered else { return }
+        await withCheckedContinuation { continuation in
+            entryContinuation = continuation
+        }
+    }
+
+    func release() {
+        releaseContinuation?.resume()
+        releaseContinuation = nil
     }
 }

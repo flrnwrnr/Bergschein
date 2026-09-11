@@ -207,33 +207,45 @@ struct DailyChallenge: Identifiable {
     }
 
     var date: Date {
+        date(in: BergscheinDateHelper.eventCalendar)
+    }
+
+    func date(in calendar: Calendar) -> Date {
         let components = DateComponents(year: year, month: month, day: day)
-        return BergscheinDateHelper.eventCalendar.date(from: components) ?? .now
+        return calendar.date(from: components) ?? .now
     }
 
     var startDate: Date? {
+        startDate(in: BergscheinDateHelper.eventCalendar)
+    }
+
+    func startDate(in calendar: Calendar) -> Date? {
         guard let startHour, let startMinute else {
             return nil
         }
 
-        return BergscheinDateHelper.eventCalendar.date(
+        return calendar.date(
             bySettingHour: startHour,
             minute: startMinute,
             second: 0,
-            of: date
+            of: date(in: calendar)
         )
     }
 
     var endDate: Date? {
+        endDate(in: BergscheinDateHelper.eventCalendar)
+    }
+
+    func endDate(in calendar: Calendar) -> Date? {
         guard let endHour, let endMinute else {
             return nil
         }
 
-        let sameDayEndDate = BergscheinDateHelper.eventCalendar.date(
+        let sameDayEndDate = calendar.date(
             bySettingHour: endHour,
             minute: endMinute,
             second: 0,
-            of: date
+            of: date(in: calendar)
         )
 
         guard let sameDayEndDate else {
@@ -241,7 +253,7 @@ struct DailyChallenge: Identifiable {
         }
 
         if spansMidnight {
-            return BergscheinDateHelper.eventCalendar.date(byAdding: .day, value: 1, to: sameDayEndDate)
+            return calendar.date(byAdding: .day, value: 1, to: sameDayEndDate)
         }
 
         return sameDayEndDate

@@ -1,38 +1,12 @@
 import SwiftUI
 
 extension ContentView {
-    var challengeRewardsByID: [String: ChallengeReward] {
-        Dictionary(uniqueKeysWithValues: activeBadgeSeason.rewards.map { ($0.id, $0) })
-    }
-
-    /// Rewards remain accessible for every season that earned them. Newer
-    /// seasons appear first while each season keeps its catalog order.
-    var unlockedChallengeRewardGroups: [ChallengeRewardSeasonGroup] {
-        ChallengeRewardSeasonGroup.unlocked(in: SeasonCatalog.all) {
-            seasonProgressStore.progress(for: $0)
-        }
-    }
-
-    func seasonID(for reward: ChallengeReward) -> String? {
-        SeasonCatalog.all.first { $0.rewards.contains(where: { $0.id == reward.id }) }?.id
-    }
-
-    func isChallengeRewardRedeemed(_ reward: ChallengeReward) -> Bool {
-        guard let seasonID = seasonID(for: reward) else { return false }
-        return seasonProgressStore.progress(for: seasonID).redeemedRewardIDs.contains(reward.id)
-    }
-
-    func canRedeemChallengeReward(_ reward: ChallengeReward) -> Bool {
-        guard !isChallengeRewardRedeemed(reward) else { return false }
-        guard let seasonID = seasonID(for: reward), let season = SeasonCatalog.season(id: seasonID) else { return false }
-        if let starts = reward.redemptionStartsAt?.date(in: season.calendar), currentDate < starts { return false }
-        if let ends = reward.redemptionEndsAt?.date(in: season.calendar), currentDate >= ends { return false }
-        return true
-    }
-
-    var completedChallenges: Set<String> {
-        activeSeasonProgress.completedChallengeIDs.intersection(Set(challengeDefinitions.filter { !$0.isPlaceholder }.map(\.id)))
-    }
+    var challengeRewardsByID: [String: ChallengeReward] { contentStore.challengeRewardsByID }
+    var unlockedChallengeRewardGroups: [ChallengeRewardSeasonGroup] { contentStore.unlockedChallengeRewardGroups }
+    func seasonID(for reward: ChallengeReward) -> String? { contentStore.seasonID(for: reward) }
+    func isChallengeRewardRedeemed(_ reward: ChallengeReward) -> Bool { contentStore.isChallengeRewardRedeemed(reward) }
+    func canRedeemChallengeReward(_ reward: ChallengeReward) -> Bool { contentStore.canRedeemChallengeReward(reward) }
+    var completedChallenges: Set<String> { contentStore.completedChallenges }
 
     var challengeIntroduction: String {
         if challengePreview != nil { return "" }
@@ -42,7 +16,7 @@ extension ContentView {
         return "Hier findest du an jedem Bergtag eine Challenge rund um das Thema Kirchweih und Erlangen. Du kannst nur an genau diesem Tag mitmachen und an ausgewählten Tagen eine **Belohnung** erhalten."
     }
 
-    var completedChallengesCount: Int { challengeDefinitions.filter { completedChallenges.contains($0.id) }.count }
+    var completedChallengesCount: Int { contentStore.completedChallengesCount }
     var totalChallengesCount: Int { challengeDefinitions.filter { !$0.isPlaceholder }.count }
 
     /// Preview is display-only and is never a claim, completion or notification source.
@@ -51,19 +25,10 @@ extension ContentView {
         return challengeDefinitions.first
     }
 
-    var activeChallenge: DailyChallenge? {
-        guard activeSeasonPhase == .active else { return nil }
-        if let overnight = challengeDefinitions.first(where: { challenge in
-            guard challenge.spansMidnight, let start = challenge.startDate, let end = challenge.endDate else { return false }
-            return currentDate >= start && currentDate < end
-        }) { return overnight }
-        return challengeDefinitions.first { badgeCalendar.isDate($0.date, inSameDayAs: currentDate) }
-    }
+    var activeChallenge: DailyChallenge? { contentStore.activeChallenge }
 
     var canCheckInForActiveChallenge: Bool {
-        guard let challenge = activeChallenge else { return false }
-        return !challenge.isPlaceholder && challenge.requiresLocationCheckIn && !isChallengeCompleted(challenge) &&
-            isWithinChallengeWindow(challenge) && isWithinChallengeRadius(challenge)
+        contentStore.canCheckInForActiveChallenge(isWithinRadius: isWithinChallengeRadius(_:))
     }
 
     var shouldShowChallengeButton: Bool {
@@ -86,32 +51,30 @@ extension ContentView {
     var hasChallengeSeasonEnded: Bool { currentDate >= activeBadgeSeason.endDate }
 
     func claimActiveChallenge() async {
-        guard let challenge = activeChallenge, canCheckInForActiveChallenge else { return }
-        seasonProgressStore.completeChallenge(challenge.id, in: activeBadgeSeason.id)
-        let updatedChallenges = completedChallenges.union([challenge.id])
-        triggerSuccessHaptic()
-        await analyticsService.track(eventType: .challengeCompleted, installID: analyticsInstallID, eventDate: currentDate, badgeCountAfterEvent: unlockedBadges.count, isPerfectSoFar: isPerfectSoFar(with: unlockedBadges), challengeCountAfterEvent: updatedChallenges.count, seasonID: activeBadgeSeason.id)
-
-        if let rewardID = challenge.rewardID, let reward = activeBadgeSeason.reward(withID: rewardID), !activeSeasonProgress.unlockedRewardIDs.contains(rewardID) {
-            seasonProgressStore.unlockReward(rewardID, in: activeBadgeSeason.id)
-            withAnimation(overlayPresentationAnimation) { activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: reward) }
+        guard let result = await contentStore.claimActiveChallenge(
+            isWithinRadius: isWithinChallengeRadius(_:),
+            analyticsInstallID: analyticsInstallID,
+            onClaimAccepted: triggerSuccessHaptic
+        ) else {
+            return
+        }
+        if let reward = result.unlockedReward {
+            withAnimation(overlayPresentationAnimation) {
+                activeChallengeRewardOverlay = ChallengeRewardOverlayPresentation(reward: reward)
+            }
         }
     }
 
     func redeemChallengeReward(_ reward: ChallengeReward) {
-        guard let seasonID = seasonID(for: reward), canRedeemChallengeReward(reward) else { return }
-        seasonProgressStore.redeemReward(reward.id, in: seasonID)
-        if let url = reward.redemptionURL { openURL(url) }
+        guard let result = contentStore.redeemChallengeReward(reward) else { return }
+        if let url = result.destinationURL {
+            openURL(url)
+        }
         triggerSuccessHaptic()
     }
 
     func isChallengeCompleted(_ challenge: DailyChallenge) -> Bool { completedChallenges.contains(challenge.id) }
-
-    func isWithinChallengeWindow(_ challenge: DailyChallenge) -> Bool {
-        guard !challenge.isPlaceholder else { return false }
-        guard let start = challenge.startDate, let end = challenge.endDate else { return badgeCalendar.isDate(challenge.date, inSameDayAs: currentDate) }
-        return currentDate >= start && currentDate < end
-    }
+    func isWithinChallengeWindow(_ challenge: DailyChallenge) -> Bool { contentStore.isWithinChallengeWindow(challenge) }
 
     func isWithinChallengeRadius(_ challenge: DailyChallenge) -> Bool {
         guard !challenge.isPlaceholder else { return false }

@@ -48,8 +48,6 @@ struct ContentView: View {
         var id: String { rawValue }
     }
 
-    let claimStartHour = 10
-    let claimEndHour = 23
     let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     let locationRefreshClock = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
     let overlayPresentationAnimation = Animation.spring(response: 0.42, dampingFraction: 0.82)
@@ -58,7 +56,7 @@ struct ContentView: View {
 
     @StateObject var locationController = LocationController()
     @StateObject var tipJarStore = TipJarStore()
-    @StateObject var seasonProgressStore = SeasonProgressStore()
+    @StateObject var contentStore = ContentViewStore()
     @AppStorage("analyticsInstallID") var analyticsInstallID = ""
     @AppStorage("testEventStartDay") var testEventStartDay = ""
     @AppStorage("dismissedMissedBadgeIdentifier") var dismissedMissedBadgeIdentifier = ""
@@ -76,7 +74,6 @@ struct ContentView: View {
     @State var activeMissedDayAlert: MissedDayAlertPresentation?
     @State var activeLocationAccessRequiredOverlay: LocationAccessRequiredOverlayPresentation?
     @State var activeBadgeShareSheet: BadgeShareSheetItem?
-    @State var currentDate = Date()
     @State var useSimulatedDate = false
     @State var mapPosition = MapCameraPosition.automatic
     @State var selectedTab: AppTab = .checkIn

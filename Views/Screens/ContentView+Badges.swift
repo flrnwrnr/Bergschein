@@ -1,25 +1,31 @@
 import SwiftUI
 
 extension ContentView {
-    var activeBadgeSeason: SeasonDefinition { SeasonCatalog.displayedSeason(at: currentDate) }
-    var playableSeason: SeasonDefinition? { SeasonCatalog.playableSeason(at: currentDate) }
-    var activeSeasonPhase: SeasonPhase { activeBadgeSeason.phase(at: currentDate) }
-    var activeSeasonProgress: SeasonProgress { seasonProgressStore.progress(for: activeBadgeSeason.id) }
-    var badgeCalendar: Calendar { activeBadgeSeason.calendar }
-    var badgeDefinitions: [BadgeDefinition] { activeBadgeSeason.badges }
-    var challengeDefinitions: [DailyChallenge] { activeBadgeSeason.challenges }
-    var unlockedBadges: Set<String> { activeSeasonProgress.unlockedBadgeIDs.intersection(Set(badgeDefinitions.map(\.id))) }
-
-    var canClaimToday: Bool {
-        playableSeason?.id == activeBadgeSeason.id && hasOfficialOpeningStarted &&
-        locationController.isInAllowedRegion && isWithinClaimWindow &&
-        currentBadge != nil && !isCurrentBadgeUnlocked
+    // Thin view adapters keep presentation code independent from the store's
+    // season and progress calculations.
+    var currentDate: Date {
+        get { contentStore.currentDate }
+        nonmutating set { contentStore.currentDate = newValue }
     }
 
-    var isWithinClaimWindow: Bool {
-        let hour = badgeCalendar.component(.hour, from: currentDate)
-        return hour >= claimStartHour && hour < claimEndHour
-    }
+    var seasonProgressStore: SeasonProgressStore { contentStore.seasonProgressStore }
+    var activeBadgeSeason: SeasonDefinition { contentStore.activeBadgeSeason }
+    var playableSeason: SeasonDefinition? { contentStore.playableSeason }
+    var activeSeasonPhase: SeasonPhase { contentStore.activeSeasonPhase }
+    var activeSeasonProgress: SeasonProgress { contentStore.activeSeasonProgress }
+    var badgeCalendar: Calendar { contentStore.badgeCalendar }
+    var badgeDefinitions: [BadgeDefinition] { contentStore.badgeDefinitions }
+    var challengeDefinitions: [DailyChallenge] { contentStore.challengeDefinitions }
+    var unlockedBadges: Set<String> { contentStore.unlockedBadges }
+    var canClaimToday: Bool { contentStore.canClaimToday(isInAllowedRegion: locationController.isInAllowedRegion) }
+    var isWithinClaimWindow: Bool { contentStore.isWithinClaimWindow }
+    var currentStreak: Int { contentStore.currentStreak }
+    var hasLostLargeBergscheinChance: Bool { contentStore.hasLostLargeBergscheinChance }
+    var blockingMissedBadge: BadgeDefinition? { contentStore.blockingMissedBadge }
+    var currentBadge: BadgeDefinition? { contentStore.currentBadge }
+    var isCurrentBadgeUnlocked: Bool { contentStore.isCurrentBadgeUnlocked }
+    var hasOfficialOpeningStarted: Bool { contentStore.hasOfficialOpeningStarted }
+    var hasEventEnded: Bool { contentStore.hasEventEnded }
 
     var claimStatusText: String {
         if activeSeasonPhase == .preparation, let next = SeasonCatalog.nextKnownSeason(after: currentDate) {
@@ -40,46 +46,16 @@ extension ContentView {
 
     var displayedBadgeDefinitions: [BadgeDefinition] { selectedBadgeSeason.badges }
     var displayedSeasonProgress: SeasonProgress { seasonProgressStore.progress(for: selectedBadgeSeason.id) }
-    var displayedUnlockedBadges: Set<String> { displayedSeasonProgress.unlockedBadgeIDs.intersection(Set(displayedBadgeDefinitions.map(\.id))) }
-    var displayedHasLostLargeBergscheinChance: Bool { selectedBadgeSeason.endDate <= currentDate && displayedUnlockedBadges.count < displayedBadgeDefinitions.count }
-
+    var displayedUnlockedBadges: Set<String> { contentStore.unlockedBadges(in: selectedBadgeSeason) }
+    var displayedHasLostLargeBergscheinChance: Bool { contentStore.hasLostLargeBergscheinChance(in: selectedBadgeSeason) }
     func displayedStandardBadges(in category: BadgeCategory) -> [BadgeDefinition] { displayedBadgeDefinitions.filter { $0.category == category && $0.subtitle == nil } }
     func displayedFeaturedBadge(in category: BadgeCategory) -> BadgeDefinition? { displayedBadgeDefinitions.first { $0.category == category && $0.subtitle != nil } }
 
-    var currentStreak: Int {
-        guard let currentBadge, let index = badgeDefinitions.firstIndex(where: { $0.id == currentBadge.id }) else { return 0 }
-        var streak = 0
-        for badge in badgeDefinitions[...index].reversed() {
-            guard unlockedBadges.contains(badge.id) else { break }
-            streak += 1
-        }
-        return streak
-    }
-
-    var hasLostLargeBergscheinChance: Bool { blockingMissedBadge != nil || (hasEventEnded && unlockedBadges.count < badgeDefinitions.count) }
-
-    var blockingMissedBadge: BadgeDefinition? {
-        guard let currentBadge, let currentIndex = badgeDefinitions.firstIndex(where: { $0.id == currentBadge.id }), currentIndex > 0 else { return nil }
-        return badgeDefinitions[..<currentIndex].first { !unlockedBadges.contains($0.id) }
-    }
-
-    var currentBadge: BadgeDefinition? {
-        guard activeSeasonPhase == .active, currentDate >= activeBadgeSeason.openingDate else { return nil }
-        let startDate = badgeCalendar.startOfDay(for: activeBadgeSeason.openingDate)
-        let activeDate = badgeCalendar.startOfDay(for: currentDate)
-        let offset = badgeCalendar.dateComponents([.day], from: startDate, to: activeDate).day ?? -1
-        guard badgeDefinitions.indices.contains(offset) else { return nil }
-        return badgeDefinitions[offset]
-    }
-
-    var isCurrentBadgeUnlocked: Bool { currentBadge.map { unlockedBadges.contains($0.id) } ?? false }
     var currentBadgeLabel: String { currentBadge?.name ?? "Keiner" }
     var defaultEventStartDate: Date? { activeBadgeSeason.openingDate }
     var eventStartDate: Date? { activeBadgeSeason.openingDate }
     var officialOpeningDate: Date? { activeBadgeSeason.openingDate }
     var officialEventEndDate: Date? { activeBadgeSeason.endDate }
-    var hasOfficialOpeningStarted: Bool { currentDate >= activeBadgeSeason.openingDate }
-    var hasEventEnded: Bool { currentDate >= activeBadgeSeason.endDate }
 
     var officialOpeningCountdownText: String {
         guard let target = SeasonCatalog.nextKnownSeason(after: currentDate)?.openingDate ?? officialOpeningDate else { return "" }
@@ -104,14 +80,21 @@ extension ContentView {
     var testEventStartDate: Date { activeBadgeSeason.openingDate }
 
     func claimBadge() async {
-        guard canClaimToday, let currentBadge else { return }
-        seasonProgressStore.unlockBadge(currentBadge.id, in: activeBadgeSeason.id)
-        let updatedBadges = unlockedBadges.union([currentBadge.id])
-        await analyticsService.track(eventType: .badgeClaimed, installID: analyticsInstallID, eventDate: currentDate, badgeCountAfterEvent: updatedBadges.count, isPerfectSoFar: isPerfectSoFar(with: updatedBadges), challengeCountAfterEvent: completedChallengesCount, seasonID: activeBadgeSeason.id)
-        let missed = blockingMissedBadge != nil
-        let final = currentBadge.id == badgeDefinitions.last?.id
+        guard let result = await contentStore.claimBadge(
+            isInAllowedRegion: locationController.isInAllowedRegion,
+            analyticsInstallID: analyticsInstallID
+        ) else {
+            return
+        }
         withAnimation(overlayPresentationAnimation) {
-            activeBadgeOverlay = BadgeOverlayPresentation(badge: currentBadge, title: "Stempel geholt!", buttonTitle: "Weiter", switchesToBadgeTab: true, subtitleOverride: missed && final ? "Letzter Bergtag" : nil, messageOverride: missed ? (final ? "Stark! Du hast dir den Stempel für den letzten Bergtag geholt." : "Stark! Du hast dir den Stempel für heute geholt.") : nil)
+            activeBadgeOverlay = BadgeOverlayPresentation(
+                badge: result.badge,
+                title: "Stempel geholt!",
+                buttonTitle: "Weiter",
+                switchesToBadgeTab: true,
+                subtitleOverride: result.missedEarlierBadge && result.isFinalBadge ? "Letzter Bergtag" : nil,
+                messageOverride: result.missedEarlierBadge ? (result.isFinalBadge ? "Stark! Du hast dir den Stempel für den letzten Bergtag geholt." : "Stark! Du hast dir den Stempel für heute geholt.") : nil
+            )
         }
     }
 
@@ -135,14 +118,6 @@ extension ContentView {
     }
 
     func isPerfectSoFar(with badges: Set<String>, in season: SeasonDefinition? = nil) -> Bool {
-        let definitions = season?.badges ?? badgeDefinitions
-        guard !definitions.isEmpty else { return true }
-        let visible: [BadgeDefinition]
-        if let badge = currentBadge, let index = definitions.firstIndex(where: { $0.id == badge.id }) {
-            visible = Array(definitions[...index])
-        } else {
-            visible = definitions
-        }
-        return visible.allSatisfy { badges.contains($0.id) }
+        contentStore.isPerfectSoFar(with: badges, in: season)
     }
 }
