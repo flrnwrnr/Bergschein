@@ -21,6 +21,8 @@ struct SeasonRaffleProgress: Codable, Equatable {
 final class SeasonProgressStore: ObservableObject {
     static let storageKey = "seasonProgressV1"
     static let migrationKey = "seasonProgressMigrationV1"
+    static let testProgressMigrationKey = "seasonProgressTestSeparationV1"
+    static let testSeasonPrefix = "test-"
     @Published private(set) var progressBySeasonID: [String: SeasonProgress]
 
     private let defaults: UserDefaults
@@ -45,7 +47,12 @@ final class SeasonProgressStore: ObservableObject {
 
         if storageIsReadable {
             migrateLegacyValuesIfNeeded()
+            migrateConfirmedPreReleaseTestProgressIfNeeded()
         }
+    }
+
+    static func storageSeasonID(for seasonID: String, isTestMode: Bool) -> String {
+        isTestMode ? testSeasonPrefix + seasonID : seasonID
     }
 
     func progress(for seasonID: String) -> SeasonProgress {
@@ -93,6 +100,23 @@ final class SeasonProgressStore: ObservableObject {
         migrateLegacyValues(for: "bergschein-2026", suffix: "")
         migrateLegacyValues(for: "bergschein-2027", suffix: ".2027")
         return persist()
+    }
+
+    /// The 2027 progress present before season-aware tracking shipped was
+    /// explicitly confirmed to come from pre-release tests. Preserve it under
+    /// the test scope instead of allowing it to contaminate production.
+    func migrateConfirmedPreReleaseTestProgressIfNeeded() {
+        guard defaults.integer(forKey: Self.testProgressMigrationKey) < 1 else { return }
+        let productionID = "bergschein-2027"
+        let testID = Self.storageSeasonID(for: productionID, isTestMode: true)
+        if let existing = progressBySeasonID[productionID], existing != SeasonProgress() {
+            var testProgress = progress(for: testID)
+            testProgress.merge(existing)
+            progressBySeasonID[testID] = testProgress
+            progressBySeasonID.removeValue(forKey: productionID)
+        }
+        guard persist() else { return }
+        defaults.set(1, forKey: Self.testProgressMigrationKey)
     }
 
     private func migrateLegacyValues(for seasonID: String, suffix: String) {
@@ -156,5 +180,17 @@ final class SeasonProgressStore: ObservableObject {
         case missing
         case valid([String: SeasonProgress])
         case invalid
+    }
+}
+
+private extension SeasonProgress {
+    mutating func merge(_ other: SeasonProgress) {
+        unlockedBadgeIDs.formUnion(other.unlockedBadgeIDs)
+        completedChallengeIDs.formUnion(other.completedChallengeIDs)
+        unlockedRewardIDs.formUnion(other.unlockedRewardIDs)
+        redeemedRewardIDs.formUnion(other.redeemedRewardIDs)
+        if !raffle.hasJoined, other.raffle.hasJoined {
+            raffle = other.raffle
+        }
     }
 }

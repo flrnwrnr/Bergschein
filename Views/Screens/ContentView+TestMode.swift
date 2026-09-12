@@ -105,7 +105,8 @@ extension ContentView {
     }
 
     func resetProgress() {
-        seasonProgressStore.resetProgress(in: activeBadgeSeason.id)
+        contentStore.setTestModeActive(isTestModeActive)
+        seasonProgressStore.resetProgress(in: contentStore.communitySeasonID)
         withAnimation(overlayDismissAnimation) {
             activeBadgeOverlay = nil
             activeChallengeRewardOverlay = nil

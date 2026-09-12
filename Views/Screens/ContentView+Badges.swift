@@ -45,7 +45,7 @@ extension ContentView {
     }
 
     var displayedBadgeDefinitions: [BadgeDefinition] { selectedBadgeSeason.badges }
-    var displayedSeasonProgress: SeasonProgress { seasonProgressStore.progress(for: selectedBadgeSeason.id) }
+    var displayedSeasonProgress: SeasonProgress { seasonProgressStore.progress(for: contentStore.progressStorageSeasonID(for: selectedBadgeSeason.id)) }
     var displayedUnlockedBadges: Set<String> { contentStore.unlockedBadges(in: selectedBadgeSeason) }
     var displayedHasLostLargeBergscheinChance: Bool { contentStore.hasLostLargeBergscheinChance(in: selectedBadgeSeason) }
     func displayedStandardBadges(in category: BadgeCategory) -> [BadgeDefinition] { displayedBadgeDefinitions.filter { $0.category == category && $0.subtitle == nil } }
@@ -80,6 +80,7 @@ extension ContentView {
     var testEventStartDate: Date { activeBadgeSeason.openingDate }
 
     func claimBadge() async {
+        contentStore.setTestModeActive(isTestModeActive)
         guard let result = await contentStore.claimBadge(
             isInAllowedRegion: locationController.isInAllowedRegion,
             analyticsInstallID: analyticsInstallID

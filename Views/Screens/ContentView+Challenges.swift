@@ -51,6 +51,7 @@ extension ContentView {
     var hasChallengeSeasonEnded: Bool { currentDate >= activeBadgeSeason.endDate }
 
     func claimActiveChallenge() async {
+        contentStore.setTestModeActive(isTestModeActive)
         guard let result = await contentStore.claimActiveChallenge(
             isWithinRadius: isWithinChallengeRadius(_:),
             analyticsInstallID: analyticsInstallID,

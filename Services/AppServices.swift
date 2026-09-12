@@ -45,6 +45,8 @@ struct CommunityStats: Decodable {
 }
 
 actor AnalyticsService {
+    static let shared = AnalyticsService()
+
     private enum Config {
         static let endpointInfoKey = "ANALYTICS_ENDPOINT"
         static let appTokenInfoKey = "ANALYTICS_APP_TOKEN"
@@ -56,6 +58,7 @@ actor AnalyticsService {
         static let pendingQueueStorageKey = "analyticsPendingEventQueueV1"
         static let seasonAwarePendingQueueStorageKey = "analyticsPendingEventQueueV2"
         static let pendingQueueMigrationKey = "analyticsPendingEventQueueV2Migrated"
+        static let pendingQueueOriginMigrationKey = "analyticsPendingEventQueueOriginsV1Migrated"
         static let requestTimeout: TimeInterval = 8
         static let maxQueuedEvents = 200
 
@@ -88,16 +91,16 @@ actor AnalyticsService {
         }
     }
 
-    struct EventPayload: Codable {
+    struct EventPayload: Codable, Equatable {
         let installID: String
         let eventType: String
         let eventTime: String
         let badgeCountAfterEvent: Int
         let isPerfectSoFar: Bool
         let challengeCountAfterEvent: Int
-        // Kept out of the network CodingKeys until the backend explicitly
-        // accepts `season_id`; it is still retained by QueuedEvent offline.
         let seasonID: String
+
+        static let quarantinedLegacySeasonID = "quarantine-legacy-analytics"
 
         enum CodingKeys: String, CodingKey {
             case installID = "install_id"
@@ -106,6 +109,7 @@ actor AnalyticsService {
             case badgeCountAfterEvent = "badge_count_after_event"
             case isPerfectSoFar = "is_perfect_so_far"
             case challengeCountAfterEvent = "challenge_count_after_event"
+            case seasonID = "season_id"
         }
 
         init(
@@ -134,13 +138,47 @@ actor AnalyticsService {
             badgeCountAfterEvent = try container.decode(Int.self, forKey: .badgeCountAfterEvent)
             isPerfectSoFar = try container.decode(Bool.self, forKey: .isPerfectSoFar)
             challengeCountAfterEvent = try container.decode(Int.self, forKey: .challengeCountAfterEvent)
-            seasonID = "bergschein-2026"
+            seasonID = try container.decodeIfPresent(String.self, forKey: .seasonID)
+                ?? Self.quarantinedLegacySeasonID
         }
     }
 
-    private struct QueuedEvent: Codable {
+    struct QueuedEvent: Codable, Equatable {
+        let id: UUID
         let payload: EventPayload
         let seasonID: String
+
+        init(id: UUID = UUID(), payload: EventPayload, seasonID: String) {
+            self.id = id
+            self.payload = payload
+            self.seasonID = seasonID
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case id
+            case payload
+            case seasonID
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+            payload = try container.decode(EventPayload.self, forKey: .payload)
+            seasonID = try container.decodeIfPresent(String.self, forKey: .seasonID)
+                ?? EventPayload.quarantinedLegacySeasonID
+        }
+
+        var payloadForUpload: EventPayload {
+            EventPayload(
+                installID: payload.installID,
+                eventType: payload.eventType,
+                eventTime: payload.eventTime,
+                badgeCountAfterEvent: payload.badgeCountAfterEvent,
+                isPerfectSoFar: payload.isPerfectSoFar,
+                challengeCountAfterEvent: payload.challengeCountAfterEvent,
+                seasonID: seasonID
+            )
+        }
     }
 
     private struct RaffleEntryPayload: Codable {
@@ -188,6 +226,8 @@ actor AnalyticsService {
     }
 
     private let iso8601Formatter = ISO8601DateFormatter()
+    private var isFlushingPendingEvents = false
+    private var pendingQueueRevision = 0
     private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = Config.requestTimeout
@@ -202,7 +242,7 @@ actor AnalyticsService {
         badgeCountAfterEvent: Int,
         isPerfectSoFar: Bool,
         challengeCountAfterEvent: Int,
-        seasonID: String
+        seasonID: String = "bergschein-2026"
     ) async {
         guard let url = URL(string: Config.endpoint),
               !Config.appToken.isEmpty else {
@@ -238,6 +278,7 @@ actor AnalyticsService {
     }
 
     func flushPendingEvents() async {
+        guard !isFlushingPendingEvents else { return }
         guard let url = URL(string: Config.endpoint),
               !Config.appToken.isEmpty else {
             return
@@ -247,12 +288,22 @@ actor AnalyticsService {
         guard !queue.isEmpty else {
             return
         }
+        isFlushingPendingEvents = true
+        defer { isFlushingPendingEvents = false }
+        let originalIDs = Set(queue.map(\.id))
+        let startingRevision = pendingQueueRevision
 
         var remainingQueue: [QueuedEvent] = []
 
         while !queue.isEmpty {
             let queuedEvent = queue.removeFirst()
-            let payload = queuedEvent.payload
+            guard queuedEvent.seasonID != EventPayload.quarantinedLegacySeasonID else {
+                // Old queue entries without an origin cannot safely be assigned
+                // to production. Keep them recoverable, but never upload them.
+                remainingQueue.append(queuedEvent)
+                continue
+            }
+            let payload = queuedEvent.payloadForUpload
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.timeoutInterval = Config.requestTimeout
@@ -274,7 +325,17 @@ actor AnalyticsService {
             }
         }
 
-        savePendingEvents(remainingQueue)
+        if pendingQueueRevision == startingRevision {
+            savePendingEvents(remainingQueue)
+        } else {
+            // Actor calls can interleave while URLSession is awaited. Preserve
+            // events enqueued during this flush rather than overwriting them.
+            savePendingEvents(Self.mergingFlushResult(
+                remaining: remainingQueue,
+                current: loadPendingEvents(),
+                originalIDs: originalIDs
+            ))
+        }
     }
 
     func submitRaffleEntry(_ requestModel: RaffleEntryRequest) async -> Bool {
@@ -309,9 +370,9 @@ actor AnalyticsService {
         }
     }
 
-    func fetchCommunityStats() async throws -> CommunityStats? {
-        guard let url = URL(string: Config.communityStatsEndpoint),
-              !Config.appToken.isEmpty else {
+    func fetchCommunityStats(seasonID: String = "bergschein-2026") async throws -> CommunityStats? {
+        guard !Config.appToken.isEmpty,
+              let url = Self.communityStatsURL(endpoint: Config.communityStatsEndpoint, seasonID: seasonID) else {
             return nil
         }
 
@@ -343,6 +404,15 @@ actor AnalyticsService {
         )
     }
 
+    static func communityStatsURL(endpoint: String, seasonID: String) -> URL? {
+        guard var components = URLComponents(string: endpoint) else { return nil }
+        var queryItems = components.queryItems ?? []
+        queryItems.removeAll { $0.name == "season_id" }
+        queryItems.append(URLQueryItem(name: "season_id", value: seasonID))
+        components.queryItems = queryItems
+        return components.url
+    }
+
     private func send(request: URLRequest) async throws -> Bool {
         let (_, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -360,20 +430,42 @@ actor AnalyticsService {
             queue = Array(queue.suffix(Config.maxQueuedEvents))
         }
 
+        pendingQueueRevision += 1
         savePendingEvents(queue)
     }
 
     private func loadPendingEvents() -> [QueuedEvent] {
         let defaults = UserDefaults.standard
         if let data = defaults.data(forKey: Config.seasonAwarePendingQueueStorageKey),
-           let queue = try? JSONDecoder().decode([QueuedEvent].self, from: data) {
+           var queue = try? JSONDecoder().decode([QueuedEvent].self, from: data) {
+            if !defaults.bool(forKey: Config.pendingQueueOriginMigrationKey) {
+                // All 2027 events produced before explicit test-mode routing
+                // were confirmed to be pre-release tests. Migrate the wrapper,
+                // which is authoritative for old V2 payloads lacking season_id.
+                queue = Self.migratingConfirmedPreReleaseOrigins(queue)
+                guard let migratedData = try? JSONEncoder().encode(queue) else { return queue }
+                defaults.set(migratedData, forKey: Config.seasonAwarePendingQueueStorageKey)
+                guard defaults.data(forKey: Config.seasonAwarePendingQueueStorageKey) == migratedData else {
+                    return queue
+                }
+                defaults.set(true, forKey: Config.pendingQueueOriginMigrationKey)
+            }
             return queue
         }
+        // No V2 queue existed at upgrade time. Mark the one-time migration now
+        // so a future production event is never mistaken for legacy test data.
+        defaults.set(true, forKey: Config.pendingQueueOriginMigrationKey)
         guard !defaults.bool(forKey: Config.pendingQueueMigrationKey),
               let data = defaults.data(forKey: Config.pendingQueueStorageKey) else { return [] }
-        let legacy = (try? JSONDecoder().decode([EventPayload].self, from: data)) ?? []
+        guard let legacy = try? JSONDecoder().decode([EventPayload].self, from: data) else { return [] }
+        // V1 was shipped only for the 2026 season. This is an explicit format
+        // migration, not an inference from event timestamps or debug state.
+        let migrated = Self.migratingLegacyV1Events(legacy)
+        guard let migratedData = try? JSONEncoder().encode(migrated) else { return [] }
+        defaults.set(migratedData, forKey: Config.seasonAwarePendingQueueStorageKey)
+        guard defaults.data(forKey: Config.seasonAwarePendingQueueStorageKey) == migratedData else { return [] }
         defaults.set(true, forKey: Config.pendingQueueMigrationKey)
-        return legacy.map { QueuedEvent(payload: $0, seasonID: $0.seasonID) }
+        return migrated
     }
 
     private func savePendingEvents(_ queue: [QueuedEvent]) {
@@ -385,6 +477,29 @@ actor AnalyticsService {
         if let data = try? JSONEncoder().encode(queue) {
             UserDefaults.standard.set(data, forKey: Config.seasonAwarePendingQueueStorageKey)
         }
+    }
+
+    static func migratingConfirmedPreReleaseOrigins(_ queue: [QueuedEvent]) -> [QueuedEvent] {
+        queue.map { queuedEvent in
+            guard queuedEvent.seasonID == "bergschein-2027" else { return queuedEvent }
+            return QueuedEvent(
+                id: queuedEvent.id,
+                payload: queuedEvent.payload,
+                seasonID: "test-bergschein-2027"
+            )
+        }
+    }
+
+    static func migratingLegacyV1Events(_ events: [EventPayload]) -> [QueuedEvent] {
+        events.map { QueuedEvent(payload: $0, seasonID: "bergschein-2026") }
+    }
+
+    static func mergingFlushResult(
+        remaining: [QueuedEvent],
+        current: [QueuedEvent],
+        originalIDs: Set<UUID>
+    ) -> [QueuedEvent] {
+        remaining + current.filter { !originalIDs.contains($0.id) }
     }
 }
 

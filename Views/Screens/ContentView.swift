@@ -52,7 +52,7 @@ struct ContentView: View {
     let locationRefreshClock = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
     let overlayPresentationAnimation = Animation.spring(response: 0.42, dampingFraction: 0.82)
     let overlayDismissAnimation = Animation.easeInOut(duration: 0.22)
-    let analyticsService = AnalyticsService()
+    let analyticsService = AnalyticsService.shared
 
     @StateObject var locationController = LocationController()
     @StateObject var tipJarStore = TipJarStore()
@@ -147,6 +147,12 @@ struct ContentView: View {
                 Task {
                     await analyticsService.flushPendingEvents()
                 }
+            }
+        }
+        .onChange(of: isTestModeActive) { _, isActive in
+            contentStore.setTestModeActive(isActive)
+            Task {
+                await analyticsService.flushPendingEvents()
             }
         }
         .onChange(of: hasSeenOnboarding) { _, hasSeenOnboarding in
@@ -269,12 +275,14 @@ struct ContentView: View {
             CommunityView(
                 appBackgroundGradient: appBackgroundGradient,
                 analyticsService: analyticsService,
-                ownCheckins: unlockedBadges.count
+                ownCheckins: unlockedBadges.count,
+                seasonID: contentStore.communitySeasonID
             )
         }
         .onAppear {
             selectedBadgeSeason = activeBadgeSeason
             ensureAnalyticsInstallID()
+            contentStore.setTestModeActive(isTestModeActive)
             refreshNotificationAuthorizationState()
             applyPendingNotificationDestinationIfNeeded()
             refreshScheduledNotifications()

@@ -90,7 +90,7 @@ final class SeasonCatalogTests: XCTestCase {
 
         let store = SeasonProgressStore(defaults: defaults)
         let progress2026 = store.progress(for: "bergschein-2026")
-        let progress2027 = store.progress(for: "bergschein-2027")
+        let progress2027 = store.progress(for: "test-bergschein-2027")
 
         XCTAssertEqual(progress2026.unlockedBadgeIDs, ["05-21", "05-22"])
         XCTAssertEqual(progress2026.completedChallengeIDs, ["2026-05-21"])
@@ -187,15 +187,107 @@ final class SeasonCatalogTests: XCTestCase {
         XCTAssertEqual(reopenedStore.progress(for: seasonID), expected)
     }
 
-    func testLegacyAnalyticsPayloadKeepsTheNetworkContractAndDefaultsTo2026() throws {
+    func testLegacyAnalyticsPayloadWithoutSeasonIsQuarantined() throws {
         let legacyPayload = Data(#"{"install_id":"install","event_type":"badge_claimed","event_time":"2026-05-21T17:00:00Z","badge_count_after_event":1,"is_perfect_so_far":true,"challenge_count_after_event":0}"#.utf8)
 
         let payload = try JSONDecoder().decode(AnalyticsService.EventPayload.self, from: legacyPayload)
 
-        XCTAssertEqual(payload.seasonID, "bergschein-2026")
+        XCTAssertEqual(payload.seasonID, AnalyticsService.EventPayload.quarantinedLegacySeasonID)
         let encodedPayload = try JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as! [String: Any]
-        XCTAssertNil(encodedPayload["season_id"])
+        XCTAssertEqual(encodedPayload["season_id"] as? String, AnalyticsService.EventPayload.quarantinedLegacySeasonID)
         XCTAssertEqual(encodedPayload["install_id"] as? String, "install")
+    }
+
+    func testSeasonAwarePayloadEncodesSeasonAndQueuedWrapperPreservesOrigin() throws {
+        let legacyInnerPayload = Data(#"{"install_id":"install","event_type":"badge_claimed","event_time":"2027-05-13T17:00:00Z","badge_count_after_event":1,"is_perfect_so_far":true,"challenge_count_after_event":0}"#.utf8)
+        let payload = try JSONDecoder().decode(AnalyticsService.EventPayload.self, from: legacyInnerPayload)
+        let queued = AnalyticsService.QueuedEvent(payload: payload, seasonID: "test-bergschein-2027")
+
+        XCTAssertEqual(payload.seasonID, AnalyticsService.EventPayload.quarantinedLegacySeasonID)
+        XCTAssertEqual(queued.payloadForUpload.seasonID, "test-bergschein-2027")
+        let encoded = try JSONSerialization.jsonObject(with: JSONEncoder().encode(queued.payloadForUpload)) as! [String: Any]
+        XCTAssertEqual(encoded["season_id"] as? String, "test-bergschein-2027")
+    }
+
+    func testOldV2Production2027WrapperMigratesToConfirmedTestOrigin() throws {
+        let legacyInnerPayload = Data(#"{"install_id":"install","event_type":"badge_claimed","event_time":"2027-05-13T17:00:00Z","badge_count_after_event":1,"is_perfect_so_far":true,"challenge_count_after_event":0}"#.utf8)
+        let payload = try JSONDecoder().decode(AnalyticsService.EventPayload.self, from: legacyInnerPayload)
+        let old2027 = AnalyticsService.QueuedEvent(payload: payload, seasonID: "bergschein-2027")
+        let historical2026 = AnalyticsService.QueuedEvent(payload: payload, seasonID: "bergschein-2026")
+
+        let migrated = AnalyticsService.migratingConfirmedPreReleaseOrigins([old2027, historical2026])
+
+        XCTAssertEqual(migrated.map(\.seasonID), ["test-bergschein-2027", "bergschein-2026"])
+        XCTAssertEqual(migrated[0].payloadForUpload.seasonID, "test-bergschein-2027")
+        XCTAssertEqual(migrated.map(\.id), [old2027.id, historical2026.id])
+    }
+
+    func testReleasedV1QueueMigratesExplicitlyTo2026() throws {
+        let legacyData = Data(#"{"install_id":"install","event_type":"badge_claimed","event_time":"2026-05-21T17:00:00Z","badge_count_after_event":1,"is_perfect_so_far":true,"challenge_count_after_event":0}"#.utf8)
+        let payload = try JSONDecoder().decode(AnalyticsService.EventPayload.self, from: legacyData)
+
+        let migrated = AnalyticsService.migratingLegacyV1Events([payload])
+
+        XCTAssertEqual(payload.seasonID, AnalyticsService.EventPayload.quarantinedLegacySeasonID)
+        XCTAssertEqual(migrated.first?.seasonID, "bergschein-2026")
+        XCTAssertEqual(migrated.first?.payloadForUpload.seasonID, "bergschein-2026")
+    }
+
+    func testMalformedV2QueueWithoutWrapperOriginIsQuarantined() throws {
+        let data = Data(#"{"payload":{"install_id":"install","event_type":"badge_claimed","event_time":"2027-05-13T17:00:00Z","badge_count_after_event":1,"is_perfect_so_far":true,"challenge_count_after_event":0}}"#.utf8)
+
+        let queued = try JSONDecoder().decode(AnalyticsService.QueuedEvent.self, from: data)
+
+        XCTAssertEqual(queued.seasonID, AnalyticsService.EventPayload.quarantinedLegacySeasonID)
+    }
+
+    func testFlushMergePreservesEventsQueuedWhileRequestWasSuspended() {
+        let payload = AnalyticsService.EventPayload(
+            installID: "install",
+            eventType: AnalyticsEventType.badgeClaimed.rawValue,
+            eventTime: "2027-05-13T17:00:00Z",
+            badgeCountAfterEvent: 1,
+            isPerfectSoFar: true,
+            challengeCountAfterEvent: 0,
+            seasonID: "test-bergschein-2027"
+        )
+        let sent = AnalyticsService.QueuedEvent(payload: payload, seasonID: payload.seasonID)
+        let failed = AnalyticsService.QueuedEvent(payload: payload, seasonID: payload.seasonID)
+        let queuedDuringFlush = AnalyticsService.QueuedEvent(payload: payload, seasonID: payload.seasonID)
+
+        let merged = AnalyticsService.mergingFlushResult(
+            remaining: [failed],
+            current: [sent, failed, queuedDuringFlush],
+            originalIDs: [sent.id, failed.id]
+        )
+
+        XCTAssertEqual(merged.map(\.id), [failed.id, queuedDuringFlush.id])
+    }
+
+    func testCommunityStatsURLCarriesRequestedSeasonWithoutDroppingExistingQuery() throws {
+        let url = try XCTUnwrap(AnalyticsService.communityStatsURL(
+            endpoint: "https://example.com/community.php?format=json&season_id=old",
+            seasonID: "test-bergschein-2027"
+        ))
+        let components = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+
+        XCTAssertEqual(components.queryItems?.filter { $0.name == "season_id" }.map(\.value), ["test-bergschein-2027"])
+        XCTAssertEqual(components.queryItems?.first { $0.name == "format" }?.value, "json")
+    }
+
+    func testConfirmedPreRelease2027ProgressMovesToTestScope() throws {
+        let suiteName = "SeasonCatalogTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let existing = ["bergschein-2027": SeasonProgress(unlockedBadgeIDs: ["2027-05-13"])]
+        defaults.set(try JSONEncoder().encode(existing), forKey: SeasonProgressStore.storageKey)
+        defaults.set(1, forKey: SeasonProgressStore.migrationKey)
+
+        let store = SeasonProgressStore(defaults: defaults)
+
+        XCTAssertEqual(store.progress(for: "bergschein-2027"), SeasonProgress())
+        XCTAssertEqual(store.progress(for: "test-bergschein-2027").unlockedBadgeIDs, ["2027-05-13"])
+        XCTAssertEqual(defaults.integer(forKey: SeasonProgressStore.testProgressMigrationKey), 1)
     }
 
     func testRewardFollowUpWindowUsesConfiguredExclusiveEnd() {
@@ -346,6 +438,35 @@ final class ContentViewStoreTests: XCTestCase {
         XCTAssertNil(store.seasonProgressStore.progress(for: "unconfigured-season").unlockedBadgeIDs.first)
     }
 
+    func testTestModeSeparatesProgressAndAnalyticsSeasonFromProduction() async {
+        let recorder = AnalyticsEventGate()
+        let date = makeDate(year: 2026, month: 5, day: 21, hour: 17)
+        let store = ContentViewStore(
+            seasonProgressStore: makeProgressStore(),
+            now: { date },
+            analyticsTracker: { event in await recorder.track(event) }
+        )
+        store.setTestModeActive(true)
+
+        let claim = Task {
+            await store.claimBadge(isInAllowedRegion: true, analyticsInstallID: "install")
+        }
+        await recorder.waitUntilEntered()
+
+        XCTAssertEqual(store.communitySeasonID, "test-bergschein-2026")
+        XCTAssertEqual(store.activeSeasonProgress.unlockedBadgeIDs, ["05-21"])
+        XCTAssertEqual(store.seasonProgressStore.progress(for: "bergschein-2026"), SeasonProgress())
+
+        store.setTestModeActive(false)
+        XCTAssertEqual(store.communitySeasonID, "bergschein-2026")
+        XCTAssertTrue(store.activeSeasonProgress.unlockedBadgeIDs.isEmpty)
+
+        await recorder.release()
+        _ = await claim.value
+        let events = await recorder.events
+        XCTAssertEqual(events.first?.seasonID, "test-bergschein-2026")
+    }
+
     func testMissedBadgeAndStreakReflectProgressBeforeCurrentBadge() {
         let date = makeDate(year: 2026, month: 5, day: 23, hour: 12)
         let store = makeStore(date: date)
@@ -468,6 +589,81 @@ final class ContentViewStoreTests: XCTestCase {
         XCTAssertEqual(events.first?.challengeCountAfterEvent, 1)
     }
 
+    func testCommunityViewModelFailedReloadClearsPreviouslyLoadedStats() async {
+        let model = CommunityViewModel { seasonID in
+            guard seasonID == "seed" else {
+                throw CommunityViewModelTestError.unavailable
+            }
+            return CommunityStats(
+                generatedAt: "",
+                basis: "",
+                totalCollectors: 1,
+                averageCheckins: 1,
+                maxCheckins: 12,
+                distribution: []
+            )
+        }
+
+        await model.load(seasonID: "seed")
+        XCTAssertNotNil(model.stats)
+
+        await model.load(seasonID: "failed-reload")
+        XCTAssertNil(model.stats)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertEqual(model.errorMessage, String(localized: "Bitte versuche es in ein paar Sekunden erneut."))
+    }
+
+    func testCommunityViewModelDoesNotApplyOlderSuccessfulResponseAfterNewerFailure() async {
+        let gate = CommunityRequestGate()
+        let model = CommunityViewModel { seasonID in
+            if seasonID == "older-season" {
+                await gate.startAndWaitForRelease()
+                return CommunityStats(
+                    generatedAt: "",
+                    basis: "",
+                    totalCollectors: 1,
+                    averageCheckins: 1,
+                    maxCheckins: 12,
+                    distribution: []
+                )
+            }
+            throw CommunityViewModelTestError.unavailable
+        }
+
+        let olderRequest = Task { @MainActor in
+            await model.load(seasonID: "older-season")
+        }
+        await gate.waitUntilStarted()
+
+        await model.load(seasonID: "newer-season")
+        await gate.release()
+        await olderRequest.value
+
+        XCTAssertNil(model.stats)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertEqual(model.errorMessage, String(localized: "Bitte versuche es in ein paar Sekunden erneut."))
+    }
+
+    func testCommunityViewModelFinishesCancelledRequestWhenFetcherIgnoresCancellation() async {
+        let gate = CommunityRequestGate()
+        let model = CommunityViewModel { _ in
+            await gate.startAndWaitForRelease()
+            return nil
+        }
+
+        let request = Task { @MainActor in
+            await model.load(seasonID: "test-bergschein-2027")
+        }
+        await gate.waitUntilStarted()
+        request.cancel()
+        await gate.release()
+        await request.value
+
+        XCTAssertNil(model.stats)
+        XCTAssertNil(model.errorMessage)
+        XCTAssertFalse(model.isLoading)
+    }
+
     private func makeStore(date: Date) -> ContentViewStore {
         ContentViewStore(seasonProgressStore: makeProgressStore(), now: { date })
     }
@@ -530,6 +726,37 @@ private actor AnalyticsEventGate {
         guard !entered else { return }
         await withCheckedContinuation { continuation in
             entryContinuation = continuation
+        }
+    }
+
+    func release() {
+        releaseContinuation?.resume()
+        releaseContinuation = nil
+    }
+}
+
+private enum CommunityViewModelTestError: Error {
+    case unavailable
+}
+
+private actor CommunityRequestGate {
+    private var didStart = false
+    private var startContinuation: CheckedContinuation<Void, Never>?
+    private var releaseContinuation: CheckedContinuation<Void, Never>?
+
+    func startAndWaitForRelease() async {
+        didStart = true
+        startContinuation?.resume()
+        startContinuation = nil
+        await withCheckedContinuation { continuation in
+            releaseContinuation = continuation
+        }
+    }
+
+    func waitUntilStarted() async {
+        guard !didStart else { return }
+        await withCheckedContinuation { continuation in
+            startContinuation = continuation
         }
     }
 

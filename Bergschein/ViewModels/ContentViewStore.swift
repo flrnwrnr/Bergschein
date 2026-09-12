@@ -35,11 +35,12 @@ final class ContentViewStore: ObservableObject {
     private var progressObservation: AnyCancellable?
 
     @Published var currentDate: Date
+    @Published private(set) var isTestModeActive = false
 
     init(
         seasonProgressStore: SeasonProgressStore? = nil,
         now: @escaping () -> Date = Date.init,
-        analyticsService: AnalyticsService = AnalyticsService(),
+        analyticsService: AnalyticsService = .shared,
         analyticsTracker: AnalyticsTracker? = nil
     ) {
         self.seasonProgressStore = seasonProgressStore ?? SeasonProgressStore()
@@ -82,7 +83,20 @@ final class ContentViewStore: ObservableObject {
     }
 
     var activeSeasonProgress: SeasonProgress {
-        seasonProgressStore.progress(for: activeBadgeSeason.id)
+        seasonProgressStore.progress(for: communitySeasonID)
+    }
+
+    var communitySeasonID: String {
+        progressStorageSeasonID(for: activeBadgeSeason.id)
+    }
+
+    func progressStorageSeasonID(for seasonID: String) -> String {
+        SeasonProgressStore.storageSeasonID(for: seasonID, isTestMode: isTestModeActive)
+    }
+
+    func setTestModeActive(_ isActive: Bool) {
+        guard isTestModeActive != isActive else { return }
+        isTestModeActive = isActive
     }
 
     var badgeCalendar: Calendar {
@@ -102,7 +116,8 @@ final class ContentViewStore: ObservableObject {
     }
 
     func unlockedBadges(in season: SeasonDefinition) -> Set<String> {
-        seasonProgressStore.progress(for: season.id).unlockedBadgeIDs.intersection(Set(season.badges.map(\.id)))
+        seasonProgressStore.progress(for: progressStorageSeasonID(for: season.id))
+            .unlockedBadgeIDs.intersection(Set(season.badges.map(\.id)))
     }
 
     func hasLostLargeBergscheinChance(in season: SeasonDefinition) -> Bool {
@@ -189,7 +204,7 @@ final class ContentViewStore: ObservableObject {
 
     var unlockedChallengeRewardGroups: [ChallengeRewardSeasonGroup] {
         ChallengeRewardSeasonGroup.unlocked(in: SeasonCatalog.all) {
-            seasonProgressStore.progress(for: $0)
+            seasonProgressStore.progress(for: progressStorageSeasonID(for: $0))
         }
     }
 
@@ -240,7 +255,8 @@ final class ContentViewStore: ObservableObject {
         guard let seasonID = seasonID(for: reward) else {
             return false
         }
-        return seasonProgressStore.progress(for: seasonID).redeemedRewardIDs.contains(reward.id)
+        return seasonProgressStore.progress(for: progressStorageSeasonID(for: seasonID))
+            .redeemedRewardIDs.contains(reward.id)
     }
 
     func canRedeemChallengeReward(_ reward: ChallengeReward) -> Bool {
@@ -274,7 +290,8 @@ final class ContentViewStore: ObservableObject {
         let isFinalBadge = badge.id == badgeDefinitions.last?.id
         let isPerfect = isPerfectSoFar(with: updatedBadges, in: season)
 
-        seasonProgressStore.unlockBadge(badge.id, in: season.id)
+        let storageSeasonID = progressStorageSeasonID(for: season.id)
+        seasonProgressStore.unlockBadge(badge.id, in: storageSeasonID)
         await analyticsTracker(AnalyticsTrackingEvent(
             eventType: .badgeClaimed,
             installID: analyticsInstallID,
@@ -282,7 +299,7 @@ final class ContentViewStore: ObservableObject {
             badgeCountAfterEvent: updatedBadges.count,
             isPerfectSoFar: isPerfect,
             challengeCountAfterEvent: updatedChallengeCount,
-            seasonID: season.id
+            seasonID: storageSeasonID
         ))
         return BadgeClaimResult(
             badge: badge,
@@ -311,9 +328,10 @@ final class ContentViewStore: ObservableObject {
             activeSeasonProgress.unlockedRewardIDs.contains(reward.id) ? nil : reward
         }
 
-        seasonProgressStore.completeChallenge(challenge.id, in: season.id)
+        let storageSeasonID = progressStorageSeasonID(for: season.id)
+        seasonProgressStore.completeChallenge(challenge.id, in: storageSeasonID)
         if let unlockedReward {
-            seasonProgressStore.unlockReward(unlockedReward.id, in: season.id)
+            seasonProgressStore.unlockReward(unlockedReward.id, in: storageSeasonID)
         }
         onClaimAccepted()
         await analyticsTracker(AnalyticsTrackingEvent(
@@ -323,7 +341,7 @@ final class ContentViewStore: ObservableObject {
             badgeCountAfterEvent: badgeCount,
             isPerfectSoFar: isPerfect,
             challengeCountAfterEvent: updatedChallenges.count,
-            seasonID: season.id
+            seasonID: storageSeasonID
         ))
         return ChallengeClaimResult(unlockedReward: unlockedReward)
     }
@@ -332,7 +350,7 @@ final class ContentViewStore: ObservableObject {
         guard let seasonID = seasonID(for: reward), canRedeemChallengeReward(reward) else {
             return nil
         }
-        seasonProgressStore.redeemReward(reward.id, in: seasonID)
+        seasonProgressStore.redeemReward(reward.id, in: progressStorageSeasonID(for: seasonID))
         return ChallengeRewardRedemptionResult(destinationURL: reward.redemptionURL)
     }
 
