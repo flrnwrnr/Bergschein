@@ -4,6 +4,79 @@ import XCTest
 
 @MainActor
 final class SeasonCatalogTests: XCTestCase {
+    func test2027TermsPresentationHasStructuredSectionsWithoutEditorialMarkers() {
+        let sections = ContentView().raffle2027TermsSections
+        XCTAssertEqual(sections.count, 15)
+        XCTAssertEqual(sections.first?.0, "1. Veranstalter")
+        XCTAssertEqual(sections.last?.0, "15. Schlussbestimmungen")
+
+        let visibleText = sections.flatMap { [$0.0] + $0.1 }.joined(separator: "\n")
+        XCTAssertFalse(visibleText.contains("[[ERGÄNZEN:"))
+        XCTAssertFalse(visibleText.contains("ENTWURF"))
+        XCTAssertFalse(visibleText.contains("## "))
+        XCTAssertFalse(visibleText.contains("---"))
+    }
+
+    func testRaffleEntryPayloadEncodesSeasonFromRequest() throws {
+        let request = RaffleEntryRequest(
+            installID: "install-123",
+            seasonID: "bergschein-2027",
+            email: "test@example.com",
+            name: "Test User",
+            termsVersion: "2027-01",
+            contactConsent: true,
+            ageConfirmed: true,
+            badgeCountAtConsent: 4,
+            challengeCountAtConsent: 2,
+            isPerfectSoFar: false
+        )
+
+        let payload = AnalyticsService.RaffleEntryPayload(request: request)
+        let encoded = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any]
+        )
+
+        XCTAssertEqual(payload.seasonID, request.seasonID)
+        XCTAssertEqual(encoded["season_id"] as? String, request.seasonID)
+        XCTAssertEqual(encoded["install_id"] as? String, "install-123")
+        XCTAssertEqual(encoded["terms_version"] as? String, "2027-01")
+        XCTAssertNil(encoded["name"], "2027 registrations must not transmit a name")
+        XCTAssertNil(encoded["challenge_count_at_consent"])
+        XCTAssertNil(encoded["is_perfect_so_far"])
+    }
+
+    func testLegacy2026RaffleEntryPayloadRetainsOptionalName() throws {
+        let request = RaffleEntryRequest(
+            installID: "install-123", seasonID: "bergschein-2026",
+            email: "test@example.com", name: "Test User", termsVersion: "2026-01",
+            contactConsent: true, ageConfirmed: true, badgeCountAtConsent: 4,
+            challengeCountAtConsent: 2, isPerfectSoFar: false
+        )
+        let payload = AnalyticsService.RaffleEntryPayload(request: request)
+        let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any])
+        XCTAssertEqual(encoded["name"] as? String, "Test User")
+        XCTAssertEqual(encoded["challenge_count_at_consent"] as? Int, 2)
+        XCTAssertEqual(encoded["is_perfect_so_far"] as? Bool, false)
+    }
+
+    func testEventDateTimeIsAlwaysFormattedInGerman() throws {
+        let openingDate = try XCTUnwrap(
+            BergscheinDateHelper.date(
+                year: 2027,
+                month: 5,
+                day: 13,
+                hour: 17,
+                minute: 0,
+                calendar: BergscheinDateHelper.eventCalendar
+            )
+        )
+
+        XCTAssertEqual(
+            BergscheinDateHelper.formattedEventDateTime(openingDate),
+            "13. Mai 2027 um 17:00"
+        )
+    }
+
     func testSeasonBoundariesAreExplicitAndEndIsExclusive() {
         let season = SeasonCatalog.all[0]
 
@@ -32,6 +105,196 @@ final class SeasonCatalogTests: XCTestCase {
         )
 
         XCTAssertTrue(SeasonCatalog.validate([invalidSeason]).contains { $0.contains("Ungültige Saisonzeiten") })
+    }
+
+    func testCatalogDefinesExplicitRaffleStatesForKnownSeasons() throws {
+        let raffle2026 = try XCTUnwrap(SeasonCatalog.season(id: "bergschein-2026")?.raffle)
+        let season2027 = try XCTUnwrap(SeasonCatalog.season(id: "bergschein-2027"))
+        let raffle2027 = try XCTUnwrap(season2027.raffle)
+
+        XCTAssertEqual(RafflePhase.allCases, [.hidden, .announced, .registrationOpen, .registrationClosed])
+        XCTAssertEqual(raffle2026.phase, .registrationClosed)
+        XCTAssertEqual(raffle2026.prizePublication, .published(RafflePrizeItem.legacy2026))
+        XCTAssertTrue(raffle2026.hasTermsText(for: "bergschein-2026"))
+        XCTAssertEqual(raffle2027.phase, .announced)
+        XCTAssertEqual(raffle2027.prizePublication, .comingSoon)
+        XCTAssertTrue(raffle2027.isVisible)
+        XCTAssertEqual(raffle2027.termsVersion, RaffleTermsCatalog.terms2027Version)
+        XCTAssertTrue(raffle2027.hasTermsText(for: "bergschein-2027"))
+        XCTAssertFalse(raffle2027.isRegistrationOpen(at: Date(), in: season2027.calendar))
+        XCTAssertFalse(raffle2026.hasTermsText(for: "bergschein-2027"))
+    }
+
+    func testCatalogAllowsAHiddenOrAnnouncedRaffleWithoutPublishedPrizes() {
+        let seasonWithoutRaffle = makeSeason(id: "without-raffle", year: 2030, rewards: [])
+        let hiddenSeason = makeSeason(
+            id: "hidden",
+            year: 2030,
+            rewards: [],
+            raffle: RaffleConfiguration(phase: .hidden, prizePublication: .comingSoon)
+        )
+        let announcedSeason = makeSeason(
+            id: "announced",
+            year: 2030,
+            rewards: [],
+            raffle: RaffleConfiguration(phase: .announced, prizePublication: .comingSoon)
+        )
+
+        XCTAssertTrue(SeasonCatalog.validate([seasonWithoutRaffle]).isEmpty)
+        XCTAssertTrue(SeasonCatalog.validate([hiddenSeason]).isEmpty)
+        XCTAssertTrue(SeasonCatalog.validate([announcedSeason]).isEmpty)
+    }
+
+    func testCatalogAllowsOnlyCompleteOpenRaffleRegistration() {
+        let start = SeasonMoment(year: 2030, month: 1, day: 1, hour: 0, minute: 0)
+        let deadline = SeasonMoment(year: 2030, month: 1, day: 5, hour: 0, minute: 0)
+        let validRaffle = RaffleConfiguration(
+            phase: .registrationOpen,
+            prizePublication: .published([makePrize()]),
+            registrationStartsAt: start,
+            termsVersion: RaffleTermsCatalog.legacy2026Version,
+            participationDeadline: deadline
+        )
+        let validSeason = makeSeason(id: "bergschein-2026", year: 2030, rewards: [], raffle: validRaffle)
+
+        XCTAssertTrue(SeasonCatalog.validate([validSeason]).isEmpty)
+
+        let incompleteRaffles: [(String, RaffleConfiguration)] = [
+            (
+                "missing-start",
+                RaffleConfiguration(
+                    phase: .registrationOpen,
+                    prizePublication: .published([makePrize()]),
+                    termsVersion: "2030-01-01",
+                    participationDeadline: deadline
+                )
+            ),
+            (
+                "missing-deadline",
+                RaffleConfiguration(
+                    phase: .registrationOpen,
+                    prizePublication: .published([makePrize()]),
+                    registrationStartsAt: start,
+                    termsVersion: "2030-01-01"
+                )
+            ),
+            (
+                "missing-terms",
+                RaffleConfiguration(
+                    phase: .registrationOpen,
+                    prizePublication: .published([makePrize()]),
+                    registrationStartsAt: start,
+                    termsVersion: "  \n",
+                    participationDeadline: deadline
+                )
+            ),
+            (
+                "missing-terms-text",
+                RaffleConfiguration(
+                    phase: .registrationOpen,
+                    prizePublication: .published([makePrize()]),
+                    registrationStartsAt: start,
+                    termsVersion: "2030-01-01",
+                    participationDeadline: deadline
+                )
+            ),
+            (
+                "unpublished-prizes",
+                RaffleConfiguration(
+                    phase: .registrationOpen,
+                    prizePublication: .comingSoon,
+                    registrationStartsAt: start,
+                    termsVersion: "2030-01-01",
+                    participationDeadline: deadline
+                )
+            ),
+            (
+                "empty-prizes",
+                RaffleConfiguration(
+                    phase: .registrationOpen,
+                    prizePublication: .published([]),
+                    registrationStartsAt: start,
+                    termsVersion: "2030-01-01",
+                    participationDeadline: deadline
+                )
+            )
+        ]
+
+        for (id, raffle) in incompleteRaffles {
+            let errors = SeasonCatalog.validate([makeSeason(id: id, year: 2030, rewards: [], raffle: raffle)])
+            XCTAssertTrue(errors.contains { $0.contains("Unvollständige offene Verlosung") }, id)
+        }
+    }
+
+    func testCatalogRejectsEmptyPublishedPrizesAndInvalidRaffleWindow() {
+        let emptyPublished = makeSeason(
+            id: "empty-published",
+            year: 2030,
+            rewards: [],
+            raffle: RaffleConfiguration(phase: .announced, prizePublication: .published([]))
+        )
+        let sameMoment = SeasonMoment(year: 2030, month: 1, day: 1, hour: 0, minute: 0)
+        let invalidWindow = makeSeason(
+            id: "invalid-raffle-window",
+            year: 2030,
+            rewards: [],
+            raffle: RaffleConfiguration(
+                phase: .announced,
+                prizePublication: .comingSoon,
+                registrationStartsAt: sameMoment,
+                participationDeadline: sameMoment
+            )
+        )
+
+        XCTAssertTrue(SeasonCatalog.validate([emptyPublished]).contains { $0.contains("Veröffentlichte Preisliste ist leer") })
+        XCTAssertTrue(SeasonCatalog.validate([invalidWindow]).contains { $0.contains("Ungültiger Verlosungszeitraum") })
+    }
+
+    func testRaffleRegistrationUsesPhaseAndExclusiveTimeWindow() throws {
+        let season = makeSeason(id: "registration-window", year: 2030, rewards: [])
+        let startMoment = SeasonMoment(year: 2030, month: 1, day: 1, hour: 10, minute: 0)
+        let deadlineMoment = SeasonMoment(year: 2030, month: 1, day: 1, hour: 12, minute: 0)
+        let openRaffle = RaffleConfiguration(
+            phase: .registrationOpen,
+            prizePublication: .published([makePrize()]),
+            registrationStartsAt: startMoment,
+            termsVersion: "2030-01-01",
+            participationDeadline: deadlineMoment
+        )
+        let closedRaffle = RaffleConfiguration(
+            phase: .registrationClosed,
+            prizePublication: .published([makePrize()]),
+            registrationStartsAt: startMoment,
+            termsVersion: "2030-01-01",
+            participationDeadline: deadlineMoment
+        )
+        let start = try XCTUnwrap(openRaffle.registrationStartDate(in: season.calendar))
+        let deadline = try XCTUnwrap(openRaffle.participationDeadlineDate(in: season.calendar))
+
+        XCTAssertFalse(openRaffle.isRegistrationOpen(at: start.addingTimeInterval(-1), in: season.calendar))
+        XCTAssertTrue(openRaffle.isRegistrationOpen(at: start, in: season.calendar))
+        XCTAssertTrue(openRaffle.isRegistrationOpen(at: deadline.addingTimeInterval(-1), in: season.calendar))
+        XCTAssertFalse(openRaffle.isRegistrationOpen(at: deadline, in: season.calendar))
+        XCTAssertFalse(closedRaffle.isRegistrationOpen(at: start, in: season.calendar))
+    }
+
+    func testAnnounced2027RaffleHasPlannedWindowButRemainsClosed() throws {
+        let season = try XCTUnwrap(SeasonCatalog.season(id: "bergschein-2027"))
+        let raffle = try XCTUnwrap(season.raffle)
+
+        let start = try XCTUnwrap(raffle.registrationStartDate(in: season.calendar))
+        let deadline = try XCTUnwrap(raffle.participationDeadlineDate(in: season.calendar))
+        XCTAssertEqual(season.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: start), DateComponents(year: 2027, month: 4, day: 29, hour: 0, minute: 0))
+        XCTAssertEqual(season.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: deadline), DateComponents(year: 2027, month: 5, day: 31, hour: 23, minute: 0))
+        XCTAssertFalse(raffle.isRegistrationOpen(at: start, in: season.calendar))
+        XCTAssertFalse(raffle.isRegistrationOpen(at: Date(), in: season.calendar))
+
+        let suiteName = "SeasonCatalogTests.hidden.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = ContentViewStore(seasonProgressStore: SeasonProgressStore(defaults: defaults), now: Date.init)
+        XCTAssertFalse(store.isTestModeActive)
+        XCTAssertEqual(store.progressStorageSeasonID(for: season.id), "bergschein-2027")
     }
 
     func testCatalogSelectsOnlyKnownSeasonsAndNeverMakesAnUnknownYearPlayable() {
@@ -349,7 +612,12 @@ final class SeasonCatalogTests: XCTestCase {
         )!
     }
 
-    private func makeSeason(id: String, year: Int, rewards: [ChallengeReward]) -> SeasonDefinition {
+    private func makeSeason(
+        id: String,
+        year: Int,
+        rewards: [ChallengeReward],
+        raffle: RaffleConfiguration? = nil
+    ) -> SeasonDefinition {
         SeasonDefinition(
             id: id,
             configurationVersion: SeasonCatalog.configurationVersion,
@@ -362,7 +630,18 @@ final class SeasonCatalogTests: XCTestCase {
             badges: [],
             challenges: [],
             rewards: rewards,
-            raffle: nil
+            raffle: raffle
+        )
+    }
+
+    private func makePrize() -> RafflePrizeItem {
+        RafflePrizeItem(
+            id: "test-prize",
+            prizeSymbol: "🎁",
+            prizeImageName: nil,
+            sponsorImageName: "test-sponsor",
+            title: "Testpreis",
+            text: "Testbeschreibung"
         )
     }
 
@@ -465,6 +744,29 @@ final class ContentViewStoreTests: XCTestCase {
         _ = await claim.value
         let events = await recorder.events
         XCTAssertEqual(events.first?.seasonID, "test-bergschein-2026")
+    }
+
+    func testTestModeSeparatesRaffleProgressStorageFromProduction() {
+        let store = makeStore(date: makeDate(year: 2026, month: 5, day: 21, hour: 17))
+        let productionSeasonID = "bergschein-2026"
+        let raffleProgress = SeasonRaffleProgress(
+            hasJoined: true,
+            consentTimestamp: "2026-05-21T17:00:00Z",
+            contactEmail: "test@example.com",
+            contactName: "Test User"
+        )
+
+        store.setTestModeActive(true)
+        let testSeasonID = store.progressStorageSeasonID(for: productionSeasonID)
+        store.seasonProgressStore.setRaffle(raffleProgress, in: testSeasonID)
+
+        XCTAssertEqual(testSeasonID, "test-bergschein-2026")
+        XCTAssertEqual(store.seasonProgressStore.progress(for: testSeasonID).raffle, raffleProgress)
+        XCTAssertEqual(store.seasonProgressStore.progress(for: productionSeasonID).raffle, SeasonRaffleProgress())
+
+        store.setTestModeActive(false)
+        XCTAssertEqual(store.progressStorageSeasonID(for: productionSeasonID), productionSeasonID)
+        XCTAssertEqual(store.seasonProgressStore.progress(for: productionSeasonID).raffle, SeasonRaffleProgress())
     }
 
     func testMissedBadgeAndStreakReflectProgressBeforeCurrentBadge() {

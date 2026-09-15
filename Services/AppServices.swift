@@ -17,14 +17,30 @@ enum AnalyticsEventType: String, Codable, Sendable {
 
 struct RaffleEntryRequest {
     let installID: String
+    let seasonID: String
     let email: String
     let name: String?
     let termsVersion: String
     let contactConsent: Bool
     let ageConfirmed: Bool
     let badgeCountAtConsent: Int
-    let challengeCountAtConsent: Int
-    let isPerfectSoFar: Bool
+    let challengeCountAtConsent: Int?
+    let isPerfectSoFar: Bool?
+
+    init(installID: String, seasonID: String, email: String, name: String?, termsVersion: String,
+         contactConsent: Bool, ageConfirmed: Bool, badgeCountAtConsent: Int,
+         challengeCountAtConsent: Int? = nil, isPerfectSoFar: Bool? = nil) {
+        self.installID = installID
+        self.seasonID = seasonID
+        self.email = email
+        self.name = name
+        self.termsVersion = termsVersion
+        self.contactConsent = contactConsent
+        self.ageConfirmed = ageConfirmed
+        self.badgeCountAtConsent = badgeCountAtConsent
+        self.challengeCountAtConsent = challengeCountAtConsent
+        self.isPerfectSoFar = isPerfectSoFar
+    }
 }
 
 struct CommunityDistributionEntry: Decodable, Identifiable {
@@ -181,19 +197,21 @@ actor AnalyticsService {
         }
     }
 
-    private struct RaffleEntryPayload: Codable {
+    struct RaffleEntryPayload: Codable {
         let installID: String
+        let seasonID: String
         let email: String
         let name: String?
         let termsVersion: String
         let contactConsent: Bool
         let ageConfirmed: Bool
         let badgeCountAtConsent: Int
-        let challengeCountAtConsent: Int
-        let isPerfectSoFar: Bool
+        let challengeCountAtConsent: Int?
+        let isPerfectSoFar: Bool?
 
         enum CodingKeys: String, CodingKey {
             case installID = "install_id"
+            case seasonID = "season_id"
             case email
             case name
             case termsVersion = "terms_version"
@@ -202,6 +220,20 @@ actor AnalyticsService {
             case badgeCountAtConsent = "badge_count_at_consent"
             case challengeCountAtConsent = "challenge_count_at_consent"
             case isPerfectSoFar = "is_perfect_so_far"
+        }
+
+        init(request: RaffleEntryRequest) {
+            installID = request.installID
+            seasonID = request.seasonID
+            email = request.email
+            // Only the historical 2026 registration protocol carries a name.
+            name = request.seasonID == "bergschein-2026" ? request.name : nil
+            termsVersion = request.termsVersion
+            contactConsent = request.contactConsent
+            ageConfirmed = request.ageConfirmed
+            badgeCountAtConsent = request.badgeCountAtConsent
+            challengeCountAtConsent = request.seasonID == "bergschein-2026" ? request.challengeCountAtConsent : nil
+            isPerfectSoFar = request.seasonID == "bergschein-2026" ? request.isPerfectSoFar : nil
         }
     }
 
@@ -344,17 +376,7 @@ actor AnalyticsService {
             return false
         }
 
-        let payload = RaffleEntryPayload(
-            installID: requestModel.installID,
-            email: requestModel.email,
-            name: requestModel.name,
-            termsVersion: requestModel.termsVersion,
-            contactConsent: requestModel.contactConsent,
-            ageConfirmed: requestModel.ageConfirmed,
-            badgeCountAtConsent: requestModel.badgeCountAtConsent,
-            challengeCountAtConsent: requestModel.challengeCountAtConsent,
-            isPerfectSoFar: requestModel.isPerfectSoFar
-        )
+        let payload = RaffleEntryPayload(request: requestModel)
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"

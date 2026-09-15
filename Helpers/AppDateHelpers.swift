@@ -6,6 +6,8 @@
 import Foundation
 
 enum BergscheinDateHelper {
+    private static let germanLocale = Locale(identifier: "de_DE")
+
     static let eventCalendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
@@ -79,5 +81,16 @@ enum BergscheinDateHelper {
         }
 
         return parts.joined(separator: " ")
+    }
+
+    static func formattedEventDateTime(_ date: Date) -> String {
+        date.formatted(
+            Date.FormatStyle(
+                date: .long,
+                time: .shortened,
+                locale: germanLocale,
+                timeZone: eventCalendar.timeZone
+            )
+        )
     }
 }

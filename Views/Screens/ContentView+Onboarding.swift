@@ -21,7 +21,7 @@ extension ContentView {
                     TabView(selection: $onboardingSelection) {
                         ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
                             ScrollView(showsIndicators: false) {
-                                VStack(spacing: page.showsRafflePrizes ? (isCompactHeight ? 12 : 16) : pageSpacing) {
+                                VStack(spacing: page.showsRaffleContent ? (isCompactHeight ? 12 : 16) : pageSpacing) {
                                     VStack {
                                         Image("AppIconPreview")
                                             .resizable()
@@ -34,19 +34,25 @@ extension ContentView {
 
                                     if page.usesEmojiIcon {
                                         Text(page.icon)
-                                            .font(.system(size: page.showsRafflePrizes ? (isCompactHeight ? 58 : 68) : (isCompactHeight ? 78 : 88)))
+                                            .font(.system(size: page.showsRaffleContent ? (isCompactHeight ? 58 : 68) : (isCompactHeight ? 78 : 88)))
                                     } else {
                                         Image(systemName: page.icon)
-                                            .font(.system(size: page.showsRafflePrizes ? (isCompactHeight ? 46 : 52) : (isCompactHeight ? 60 : 68), weight: .bold))
+                                            .font(.system(size: page.showsRaffleContent ? (isCompactHeight ? 46 : 52) : (isCompactHeight ? 60 : 68), weight: .bold))
                                             .foregroundStyle(Color.accentColor)
                                     }
 
-                                    Text(page.title)
-                                        .font(.custom(BrandFont.primaryName, size: page.showsRafflePrizes ? (isCompactHeight ? 27 : 30) : (isCompactHeight ? 32 : 34)))
-                                        .multilineTextAlignment(.center)
-                                        .foregroundStyle(darkForest)
-                                        .lineLimit(3)
-                                        .fixedSize(horizontal: false, vertical: true)
+                                    Group {
+                                        if page.showsRaffleContent {
+                                            Text("Verlosung \(activeBadgeSeason.title)")
+                                        } else {
+                                            Text(page.title)
+                                        }
+                                    }
+                                    .font(.custom(BrandFont.primaryName, size: page.showsRaffleContent ? (isCompactHeight ? 27 : 30) : (isCompactHeight ? 32 : 34)))
+                                    .multilineTextAlignment(.center)
+                                    .foregroundStyle(darkForest)
+                                    .lineLimit(3)
+                                    .fixedSize(horizontal: false, vertical: true)
 
                                     Text(
                                         page.requiresLocationAuthorization &&
@@ -54,7 +60,7 @@ extension ContentView {
                                         ? "Ohne Standortzugriff kann der Check-in am Berg nicht verifiziert werden. Bitte aktiviere den Standortzugriff in den Systemeinstellungen, um fortzufahren."
                                         : page.text
                                     )
-                                    .font(page.showsRafflePrizes ? .body : (isCompactHeight ? .body : .title3))
+                                    .font(page.showsRaffleContent ? .body : (isCompactHeight ? .body : .title3))
                                     .fontDesign(.rounded)
                                     .multilineTextAlignment(.center)
                                     .foregroundStyle(.secondary)
@@ -63,7 +69,7 @@ extension ContentView {
 
                                     if page.showsRafflePrizes {
                                         VStack(alignment: .leading, spacing: 8) {
-                                            ForEach(rafflePrizeItems) { prize in
+                                            ForEach(activeBadgeSeason.raffle?.prizes ?? []) { prize in
                                                 HStack(spacing: 10) {
                                                     ZStack {
                                                         RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -107,6 +113,34 @@ extension ContentView {
                                             }
                                         }
                                         .padding(.horizontal, isCompactHeight ? 8 : 18)
+                                    }
+
+                                    if page.showsRaffleComingSoon {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "gift.fill")
+                                                .font(.title2)
+                                                .foregroundStyle(Color.accentColor)
+                                                .frame(width: 36, height: 36)
+
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text("Preise folgen")
+                                                    .font(.headline)
+                                                    .foregroundStyle(darkForest)
+                                                Text("Wir stellen die Gewinne gerade zusammen und geben sie rechtzeitig bekannt.")
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(.secondary)
+                                                    .fixedSize(horizontal: false, vertical: true)
+                                            }
+
+                                            Spacer(minLength: 0)
+                                        }
+                                        .padding(14)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .fill(Color(.systemBackground).opacity(0.65))
+                                        )
+                                        .padding(.horizontal, isCompactHeight ? 8 : 18)
+                                        .accessibilityElement(children: .combine)
                                     }
 
                                     if page.requiresLocationAuthorization {
@@ -182,7 +216,7 @@ extension ContentView {
     }
 
     var onboardingPages: [OnboardingPage] {
-        [
+        var pages = [
             OnboardingPage(
                 icon: "🎡",
                 title: "Der Bergschein ist zurück!",
@@ -193,13 +227,45 @@ extension ContentView {
                 title: "Standort-\nzugriff",
                 text: "Die App prüft deinen Standort, da der Check-in nur direkt am Berg möglich ist.",
                 requiresLocationAuthorization: true
-            ),
-            OnboardingPage(
-                icon: "🎁",
-                title: "Verlosung",
-                text: "Nimm unter 'Mehr' an der Verlosung teil. Verlost werden drei Preise per Los an die fleißigsten Berggänger. Viel Erfolg!",
-                showsRafflePrizes: true
             )
         ]
+
+        guard let raffle = activeBadgeSeason.raffle, raffle.isVisible else {
+            return pages
+        }
+
+        switch raffle.prizePublication {
+        case .comingSoon:
+            pages.append(
+                OnboardingPage(
+                    icon: "🎁",
+                    title: "Verlosung",
+                    text: "Auch in dieser Saison gibt es eine Verlosung. Die Gewinne werden noch organisiert.",
+                    showsRaffleComingSoon: true
+                )
+            )
+        case .published:
+            let text: LocalizedStringKey
+            switch raffle.phase {
+            case .announced:
+                text = "Die Gewinne stehen fest. Informationen zur Teilnahme folgen rechtzeitig."
+            case .registrationOpen:
+                text = "Nimm unter „Mehr“ an der Verlosung teil. Die aktuellen Gewinne findest du hier."
+            case .registrationClosed:
+                text = "Die Teilnahme ist beendet. Hier siehst du die Gewinne dieser Saison."
+            case .hidden:
+                return pages
+            }
+            pages.append(
+                OnboardingPage(
+                    icon: "🎁",
+                    title: "Verlosung",
+                    text: text,
+                    showsRafflePrizes: true
+                )
+            )
+        }
+
+        return pages
     }
 }

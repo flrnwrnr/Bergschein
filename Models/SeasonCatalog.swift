@@ -74,13 +74,83 @@ enum SeasonPhase: String, Codable, CaseIterable {
     var permitsClaims: Bool { self == .active }
 }
 
-struct RaffleConfiguration: Hashable {
-    let termsVersion: String
-    let participationDeadline: SeasonMoment
-    let prizes: [RafflePrizeItem]
+enum RafflePhase: String, Codable, Hashable, CaseIterable {
+    case hidden
+    case announced
+    case registrationOpen
+    case registrationClosed
+}
 
-    func participationDeadlineDate(in calendar: Calendar) -> Date {
-        participationDeadline.date(in: calendar)
+enum RafflePrizePublication: Hashable {
+    case comingSoon
+    case published([RafflePrizeItem])
+
+    var prizes: [RafflePrizeItem] {
+        guard case let .published(prizes) = self else { return [] }
+        return prizes
+    }
+}
+
+/// Registers the in-app text that belongs to a published terms version.
+/// Adding a version here and the associated text in the raffle view happens
+/// together, so a future season cannot fall back to a previous season's text.
+enum RaffleTermsCatalog {
+    static let legacy2026Version = "2026-04-02"
+    static let terms2027Version = "2026-09-15"
+
+    static func hasText(for version: String, seasonID: String) -> Bool {
+        switch (seasonID, version) {
+        case ("bergschein-2026", legacy2026Version),
+             ("bergschein-2027", terms2027Version):
+            true
+        default:
+            false
+        }
+    }
+}
+
+struct RaffleConfiguration: Hashable {
+    let phase: RafflePhase
+    let prizePublication: RafflePrizePublication
+    let registrationStartsAt: SeasonMoment?
+    let termsVersion: String
+    let participationDeadline: SeasonMoment?
+
+    var prizes: [RafflePrizeItem] { prizePublication.prizes }
+    var isVisible: Bool { phase != .hidden }
+    func hasTermsText(for seasonID: String) -> Bool {
+        RaffleTermsCatalog.hasText(for: termsVersion, seasonID: seasonID)
+    }
+
+    init(
+        phase: RafflePhase,
+        prizePublication: RafflePrizePublication,
+        registrationStartsAt: SeasonMoment? = nil,
+        termsVersion: String = "",
+        participationDeadline: SeasonMoment? = nil
+    ) {
+        self.phase = phase
+        self.prizePublication = prizePublication
+        self.registrationStartsAt = registrationStartsAt
+        self.termsVersion = termsVersion
+        self.participationDeadline = participationDeadline
+    }
+
+    func registrationStartDate(in calendar: Calendar) -> Date? {
+        registrationStartsAt?.date(in: calendar)
+    }
+
+    func participationDeadlineDate(in calendar: Calendar) -> Date? {
+        participationDeadline?.date(in: calendar)
+    }
+
+    func isRegistrationOpen(at date: Date, in calendar: Calendar) -> Bool {
+        guard phase == .registrationOpen,
+              let registrationStartDate = registrationStartDate(in: calendar),
+              let participationDeadlineDate = participationDeadlineDate(in: calendar) else {
+            return false
+        }
+        return registrationStartDate <= date && date < participationDeadlineDate
     }
 }
 
@@ -168,6 +238,33 @@ enum SeasonCatalog {
                     errors.append("Unbekannte Belohnung \(rewardID) in \(challenge.id)")
                 }
             }
+            if let raffle = season.raffle {
+                if case let .published(prizes) = raffle.prizePublication, prizes.isEmpty {
+                    errors.append("Veröffentlichte Preisliste ist leer in \(season.id)")
+                }
+
+                let registrationStartDate = raffle.registrationStartDate(in: season.calendar)
+                let participationDeadlineDate = raffle.participationDeadlineDate(in: season.calendar)
+                if let registrationStartDate, let participationDeadlineDate,
+                   registrationStartDate >= participationDeadlineDate {
+                    errors.append("Ungültiger Verlosungszeitraum für \(season.id)")
+                }
+
+                if raffle.phase == .registrationOpen {
+                    let hasPublishedPrizes: Bool
+                    if case let .published(prizes) = raffle.prizePublication {
+                        hasPublishedPrizes = !prizes.isEmpty
+                    } else {
+                        hasPublishedPrizes = false
+                    }
+                    if registrationStartDate == nil || participationDeadlineDate == nil ||
+                        raffle.termsVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                        !raffle.hasTermsText(for: season.id) ||
+                        !hasPublishedPrizes {
+                        errors.append("Unvollständige offene Verlosung für \(season.id)")
+                    }
+                }
+            }
         }
         for (index, season) in seasons.enumerated() {
             for other in seasons.dropFirst(index + 1) {
@@ -193,9 +290,11 @@ enum SeasonCatalog {
         challenges: DailyChallenge.all,
         rewards: [.zirkelFreeEntry, .tbBasketballDrink, .bibOfferCode],
         raffle: RaffleConfiguration(
-            termsVersion: "2026-04-02",
-            participationDeadline: SeasonMoment(year: 2026, month: 6, day: 8, hour: 23, minute: 0),
-            prizes: RafflePrizeItem.legacy2026
+            phase: .registrationClosed,
+            prizePublication: .published(RafflePrizeItem.legacy2026),
+            registrationStartsAt: SeasonMoment(year: 2026, month: 4, day: 2, hour: 0, minute: 0),
+            termsVersion: RaffleTermsCatalog.legacy2026Version,
+            participationDeadline: SeasonMoment(year: 2026, month: 6, day: 8, hour: 23, minute: 0)
         )
     )
 
@@ -211,7 +310,13 @@ enum SeasonCatalog {
         badges: BadgeDefinition.preview2027,
         challenges: DailyChallenge.placeholders2027,
         rewards: [],
-        raffle: nil
+        raffle: RaffleConfiguration(
+            phase: .announced,
+            prizePublication: .comingSoon,
+            registrationStartsAt: SeasonMoment(year: 2027, month: 4, day: 29, hour: 0, minute: 0),
+            termsVersion: RaffleTermsCatalog.terms2027Version,
+            participationDeadline: SeasonMoment(year: 2027, month: 5, day: 31, hour: 23, minute: 0)
+        )
     )
 }
 

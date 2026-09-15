@@ -28,8 +28,68 @@ Diese Liste dient als gemeinsame Erinnerungs- und Planungsgrundlage für die Sai
   - Keine automatische Testerkennung anhand des Datums. Kein separater Testserver erforderlich.
 
 - [ ] **Verlosung für 2027 vorbereiten**
-  - Neue Preise auswählen und in der App hinterlegen.
-  - Die bestehende Verlosungsmechanik kann voraussichtlich unverändert bleiben.
+  - Die Verlosung darf bereits angekündigt werden, bevor Preise feststehen. Eine
+    leere Preisliste darf dabei nicht implizit als Status verwendet werden.
+  - Verlosungsphase und Preisveröffentlichung getrennt modellieren:
+    - Verlosungsphase: `hidden`, `announced`, `registrationOpen`,
+      `registrationClosed`.
+    - Preisstatus: `comingSoon` oder `published` mit den konkreten Preisen.
+  - Bedeutung der Konfiguration:
+    - Keine Verlosungskonfiguration: Für die Saison wird keine Verlosung angezeigt.
+    - `announced` + `comingSoon`: Onboarding und Verlosungsansicht zeigen einen
+      bewusst gestalteten Hinweis „Verlosung 2027 – Preise folgen“.
+    - `published`: Die konkreten Preiskarten dürfen angezeigt werden.
+  - Registrierung erst öffnen, wenn Saison-ID, Teilnahmebeginn und -schluss,
+    Terms-Version, vollständige Teilnahmebedingungen und veröffentlichte Preise
+    vorliegen. Der Server muss das Teilnahmefenster ebenfalls prüfen.
+  - In Onboarding und Verlosungsansicht bei `comingSoon` ein neutrales Ticket-,
+    Geschenk- oder Überraschungsmotiv und einen ehrlichen Ankündigungstext statt
+    leerer Preisplätze zeigen.
+  - Kein stiller Rückfall auf die letzte Verlosung einer älteren Saison. Historische
+    Verlosungen später nur ausdrücklich als Archiv darstellen.
+  - Die Registrierung Ende-zu-Ende saisonfähig machen: `season_id` in App-Request,
+    Datenbank, Auswertung und Ziehung; Altclients ohne Kennung fest 2026 zuordnen.
+    Testteilnahmen unter `test-bergschein-YYYY` strikt von Produktion trennen.
+  - Die endgültige Teilnahmegruppe nach Ende der Saison serverseitig aus den
+    saisongefilterten Check-ins bestimmen; die beim Consent gemeldeten Zähler sind
+    keine autoritative Grundlage für die Ziehung.
+  - Neue Preise später auswählen und in der App hinterlegen. Bei lokaler
+    Konfiguration ist dafür ein App-Update nötig; ein Remote-Preiskatalog ist für
+    2027 zunächst nicht vorgesehen.
+  - Stand 14.09.2026: App-Request und lokaler Verlosungsfortschritt verwenden
+    dieselbe Saison-/Testkennung wie Stempel und Community. Saisonfähige
+    `raffle.php`, `draw.php`, Regeln und ein Migrationsentwurf liegen in der
+    lokalen Backend-Arbeitskopie. Der Nutzer hat die drei PHP-Dateien nach der
+    Live-Migration hochgeladen. Das am 14.09.2026 bereitgestellte
+    `SHOW CREATE TABLE raffle_entries` ist mit der Migration abgeglichen;
+    die Migration lief gegen dieses Schema in einer isolierten MariaDB-10.6-
+    Testdatenbank erfolgreich. Die Live-Migration wurde am 14.09.2026 nach
+    Backup und Vorprüfung vom Nutzer ausgeführt; die Nachprüfung zeigt 25
+    Einträge unter `bergschein-2026`, den neuen Unique-Index und den erhaltenen
+    `idx_email`. Unauthentifizierte Live-Anfragen lieferten für `raffle.php`
+    und `draw.php` HTTP 401; die Regeldatei ist erreichbar.
+  - Stand 15.09.2026 nach dem Anmelde-Probelauf: Eine Anmeldung über den
+    normalen 2027-Pfad wurde vom Nutzer auf dem iPhone bestätigt und in
+    `raffle_entries` nachgewiesen. Laut Nutzer wurde die Live-Regel danach
+    geschlossen und die Pilotzeile gesichert und entfernt. Die lokale
+    Backend-Arbeitskopie entspricht wieder der geschlossenen Regel. Die
+    2027-Verlosung ist nun in der App als `.announced` mit `comingSoon`
+    konfiguriert: Ankündigung sichtbar, Anmeldung geschlossen. Pilot-Texte,
+    Bedingungen und Beispielpreis sind aus dem App-Code entfernt. Für die
+    echte Verlosung sind Start und Ende der Anmeldung als Planungsdaten
+    hinterlegt: 29.04.2027 00:00 bis 31.05.2027 23:00 Uhr Berliner Zeit.
+    Die Serverfreigabe ist weiterhin aus; der Zeitraum öffnet die
+    Anmeldung nicht automatisch. Es fehlen noch verbindliche Preise, passende
+    Teilnahmebedingungen sowie eine feste Regel und Aufzeichnung der Ziehung.
+    Ein vollständiger 2027-Entwurf auf Basis des 2026-Textes mit inline
+    markierten Anpassungen liegt unter
+    `output/raffle-terms/teilnahmebedingungen-2027-entwurf.md`; er ist nicht
+    als gültiger App-Text oder Backend-Terms-Version freigeschaltet.
+  - Ein temporärer lokaler Formular-Probelauf wurde im Debug-/Testmodus geprüft
+    und anschließend wieder entfernt. Die 2027-Verlosung steht unverändert auf
+    `.announced` mit „Preise folgen“; die Backend-Freigabe bleibt `false`.
+    Der Probelauf war keine echte Anmeldung und ersetzt keinen späteren
+    Ende-zu-Ende-Test nach Preisentscheidung und finalen Bedingungen.
 
 ## Optional – sinnvolle Ergänzungen
 

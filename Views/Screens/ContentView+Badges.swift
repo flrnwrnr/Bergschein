@@ -32,7 +32,7 @@ extension ContentView {
             return "Die nächste bekannte Saison ist \(next.title)."
         }
         if isShowingNextOpeningCountdown {
-            return "Am \(activeBadgeSeason.openingDate.formatted(.dateTime.day().month(.wide).year().hour().minute())) ist wieder Anstich in Erlangen!"
+            return "Am \(BergscheinDateHelper.formattedEventDateTime(activeBadgeSeason.openingDate)) Uhr ist wieder Anstich in Erlangen!"
         }
         if hasEventEnded { return "Die Stempelsaison \(activeBadgeSeason.title) ist abgeschlossen. Deine gesammelten Stempel bleiben im Bergschein erhalten." }
         if unlockedBadges.count >= badgeDefinitions.count, !badgeDefinitions.isEmpty { return "Alle \(badgeDefinitions.count) Stempel sind bereits freigeschaltet." }

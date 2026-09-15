@@ -5,6 +5,7 @@
 
 import CoreLocation
 import Foundation
+import SwiftUI
 import UIKit
 
 enum BadgeCategory: String, CaseIterable, Identifiable {
@@ -17,10 +18,15 @@ enum BadgeCategory: String, CaseIterable, Identifiable {
 
 struct OnboardingPage {
     let icon: String
-    let title: String
-    let text: String
+    let title: LocalizedStringKey
+    let text: LocalizedStringKey
     var requiresLocationAuthorization = false
     var showsRafflePrizes = false
+    var showsRaffleComingSoon = false
+
+    var showsRaffleContent: Bool {
+        showsRafflePrizes || showsRaffleComingSoon
+    }
 
     var usesEmojiIcon: Bool {
         !icon.allSatisfy(\.isASCII)
